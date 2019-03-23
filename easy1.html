@@ -128,13 +128,13 @@ $(document).ready(function () {
 
 <div id="strategy" class="section level3">
 <h3>Strategy</h3>
-<p>This is the code and result for Easy1 problem. I have used following steps to solve this problem.</p>
+<p>This is the code and result for Easy1 problem. Following steps have been used to solve this problem :-</p>
 <ul>
-<li>Install and check the availability of packages</li>
+<li>Install and check the availability of packages.</li>
 <li>Importing very famous <a href="https://newonlinecourses.science.psu.edu/stat504/sites/onlinecourses.science.psu.edu.stat504/files/lesson07/crab/index.txt">Crab</a> data in Prof. Agresti Book - Categorical Analysis.</li>
 <li>Create Train and Test datasets.</li>
-<li>Estimate best hyper parameters using xgboost grid search cross validation with 5 fold .</li>
-<li>Estimate Test error using Poisson Log Likelihood using best parameters</li>
+<li>Estimate best hyper parameters using xgboost grid search cross validation with 5 fold.</li>
+<li>Estimate Test error using Poisson Log Likelihood metric using best parameters.</li>
 <li>Create plot of predicted , actual and base predicted y for Test dataset.</li>
 </ul>
 </div>
@@ -156,8 +156,8 @@ $(document).ready(function () {
 </div>
 <div id="result-of-model-best-parameters" class="section level2">
 <h2>Result of Model Best Parameters</h2>
-<p>I have taken subsample, max depth and shrinkage(step size) as hyper-parameters. We can take more hyper-parameters like min child weight , col subsample and column subsample.</p>
-<p>For Test-Error, I have used Poison log likehood as metric similar to xgboost crossvalidation eval metric. We can also take root mean log squared error(RMLSE).</p>
+<p>I have taken subsample, max depth and shrinkage(step size) as hyper-parameters. We can also consider hyper-parameters like min child weight , col subsample and column subsample.</p>
+<p>For Test-Error, I have used Poison log likehood as metric similar to xgboost crossvalidation eval metric. Root mean log squared error(RMLSE) can also be considered.</p>
 <table class="table table-striped table-hover" style="font-size: 20px; width: auto !important; ">
 <thead>
 <tr>
