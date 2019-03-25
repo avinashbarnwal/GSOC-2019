@@ -17,7 +17,6 @@ require(xgboost)
 
 ## Data Import and Data Declaration ##
 
-You can also embed plots, for example:
 
 ```{r InputData}
 data(agaricus.train, package='xgboost')

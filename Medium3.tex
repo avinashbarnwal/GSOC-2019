@@ -1,0 +1,151 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools}
+\usepackage{physics}
+
+\title{Medium Test 3}
+\author{Avinash Barnwal}
+\date{March 2019}
+
+\begin{document}
+
+\maketitle
+\begin{flushleft}
+
+{Problem} Derive the formula for first- and second-order partial derivatives of the loss function for binary classification. The probability for obtaining the i-th label ($y_i$) given the $i-th$ training data point ($x_i$) is as follows:
+
+First Expression
+\begin{equation}
+ P(y_i | x_i) = 
+    \begin{cases}
+      \sigma(\hat{y}_i)) & if \ y_i =1 \\
+      1-\sigma(\hat{y}_i) & else
+    \end{cases}
+  \end{equation}
+
+Second Expression  
+\begin{equation}
+ P(y_i | x_i) = \sigma(\hat{y}_i)^{(y_i)}*(1 - \sigma(\hat{y}_i))^{(1-y_i)}
+\end{equation}  
+
+where $yhat_i$ is a prediction score (range between -inf to inf) for $x_i$ produced by our model the label $y_i$ is either 0 or 1 $\sigma(*)$ is the sigmoid function.
+Note that the sigmoid function converts any real number into a probability value between 0 and 1.
+
+Q1. Explain why the first expression is equivalent to the second expression? 
+
+Ans:- Considering $\sigma(\hat{y_i})$ being the probability operator. First expression is Bernoulli distribution with $P(y_i=1|x_i)$ = $\sigma(\hat{y})$. As we know that probability mass function of Bernoulli distribution is as follows
+
+\begin{equation}
+ f(k;p)=
+    \begin{cases}
+      p & if \ k = 1 \\
+      1-p & if \ k = 0
+    \end{cases}
+\end{equation}
+
+It can also be written as This can also be expressed as
+
+\begin{equation}
+    f(k;p) = p^{k}*(1-p)^{1-k} \ k \ \epsilon \ \{0,1\} 
+\end{equation}
+
+We can also see that if we put k = 1, we get the first part of First expression and k = 0 , we get the second part of Second expression.
+
+
+
+Using the principle of Maximum Likelihood Estimation, we will choose the best $\hat{y}_i$ so as to maximize the value of $P(y_i | x_i)$, i.e. choose $\hat{y}_i$ to make the training data most probable. The "distance" between the prediction $\hat{y}_i$ and the true label $y_i$, is given as the negative logarithm of $P(y_i | x_i)$:
+
+\begin{equation}
+loss(y_i, \hat{y}_i) = -log(P(y_i | x_i))    
+\end{equation}
+
+\begin{equation}
+loss(y_i, \hat{y}_i) = -log(\sigma(\hat{y}_i)^{(y_i)}*(1 - \sigma(\hat{y}_i))^{(1 - y_i)})  
+\end{equation}
+
+                  
+Q2. Explain how minimizing the loss function $loss(y_i, \hat{y}_i)$ is equivalent to maximizing the probability $P(y_i | x_i)$ ?
+
+Ans:- $loss(y_i, \hat{y}_i)$ is $-log(P(y_i | x_i))$ which is monotonically decreasing  mapping of $P(y_i | x_i)$ with negative sign. As log function is monotonically increasing function and we have multiplied it -1 which made it monotonically decreasing function. Therefore, maximizing $P(y_i | x_i)$ is equivalent to minimizing $loss(y_i, \hat{y}_i)$.
+
+Q3. Simplify the expression for $loss(y_i, \hat{y}_i)$. Show your steps (i.e. don’t just write the answer, show how you got it) ?
+
+Ans:- 
+
+\begin{equation}
+\begin{aligned}
+loss(y_i, \hat{y}_i) &= -log(\sigma(\hat{y}_i)^{(y_i)} * (1 - \sigma(\hat{y}_i))^{(1 - y_i)})  \\
+ &= -(y_i)*log(\sigma(\hat{y}_i)) -  (1 - y_i)*log(1-\sigma(\hat{y}_i)) \\
+  &= -log(1-\sigma(\hat{y}_i))  -y_ilog(\frac{\sigma(\hat{y}_i)}{1-\sigma(\hat{y}_i)})
+\end{aligned}                    
+\end{equation}
+
+As 
+\begin{equation}
+\begin{aligned}
+log(\frac{\sigma(\hat{y}_i)}{1-\sigma(\hat{y}_i)}) 
+&=  log(\frac{\frac{e^{\hat{y}_i}}{1+e^{\hat{y}_i}}}{1 - \frac{e^{\hat{y}_i}}{1+e^{\hat{y}_i}}}) \\
+&= log(e^{\hat{y_i}}) \\
+&= \hat{y}_i
+\end{aligned}
+\end{equation}
+
+Also 
+
+\begin{equation}
+\begin{aligned}
+log(1-\sigma(\hat{y}_i)) &= log(1-\frac{e^{\hat{y}_i}}{1+e^{\hat{y}_i}})
+&= -log({1+e^{\hat{y}_i}})
+\end{aligned}
+\end{equation}
+
+Using Equation 8 and 9,
+
+\begin{equation}
+\begin{aligned}
+loss(y_i, \hat{y}_i) &= log({1+e^{\hat{y}_i}}) - y_i*\hat{y}_i
+\end{aligned}                    
+\end{equation}
+
+Q4. Now compute the first and second partial derivatives of $loss(y_i, \hat{y}_i)$ with respect to the second variable $\hat{y}_i$. Then express the two derivatives in terms of $\sigma(\hat{y}_i)$. Notice how simple the expressions become. Again, show your steps (i.e. don’t just write the answer, show how you got it).
+
+Ans:- Gradient or First Order partial derivatives of $loss(y_i, \hat{y}_i)$
+
+\begin{equation}
+\begin{aligned}
+\frac{\partial loss(y_i, \hat{y}_i)}{\partial \hat{y}_i} &=
+\frac{\partial (log({1+e^{\hat{y}_i}}) - y_i*\hat{y}_i)} {\partial \hat{y}_i}
+\\
+&= \frac{{e^{\hat{y}_i}}}{{1+e^{\hat{y}_i}}} - y_i \\
+&= \sigma(\hat{y}_i) - y_i \\
+\end{aligned}
+\end{equation}
+
+Hessian or Second Order partial derivatives of $loss(y_i, \hat{y}_i)$
+
+\begin{equation}
+\begin{aligned}
+\pdv[2]{loss(y_i, \hat{y}_i)}{\hat{y}_i} 
+&= \frac{\partial}{\partial}\frac{\partial loss(y_i, \hat{y}_i)}{\partial \hat{y}_i} 
+\\
+&= \frac{\partial \frac{{e^{\hat{y}_i}}}{{1+e^{\hat{y}_i}}}}{\partial \hat{y_i}}  
+\\
+&= \frac{{({1+e^{\hat{y}_i}})*e^{\hat{y}_i} - e^{\hat{y}_i}*e^{\hat{y}_i}}}{{(1+e^{\hat{y}_i})}^2} 
+\\
+&= \frac{{e^{\hat{y}_i}}}{{(1+e^{\hat{y}_i})}^2}
+\\
+&= \frac{{e^{\hat{y}_i}}}{{1+e^{\hat{y}_i}}}\frac{1}{{1+e^{\hat{y}_i}}}
+\\
+&= \sigma(\hat{y}_i)*(1-\sigma(\hat{y}_i))
+\end{aligned}
+\end{equation}
+
+Q5. In the source code src/objective/regression\_loss.h, locate the structure that implements this loss function.
+
+Ans:- Parent Structure is LogisticRegression starts at Line no - 40 and ends at 70 with "rmse" as default error but to have Logistic Classification , children structure is created LogisticClassification starts at Line no 73 and ends at 75 with log-loss as evaluation metric.
+
+
+
+
+\end{flushleft}
+\end{document}

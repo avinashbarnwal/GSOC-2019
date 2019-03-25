@@ -1,0 +1,40 @@
+---
+title: "Hard"
+author: "Avinash Barnwal"
+date: "3/25/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import Library and Data
+
+
+
+```{r library}
+library(xgboost)
+# load in the agaricus dataset
+data(agaricus.train, package='xgboost')
+data(agaricus.test, package='xgboost')
+dtrain <- xgb.DMatrix(agaricus.train$data, label = agaricus.train$label)
+dtest <- xgb.DMatrix(agaricus.test$data, label = agaricus.test$label)
+
+```
+
+## Parameter
+
+```{r param}
+watchlist <- list(eval = dtest, train = dtrain)
+num_round <- 20
+```
+
+## Running the Training
+
+```{r train}
+param     <- list(max_depth=2, eta=1, nthread = 2, verbosity=0, 
+                 objective="my:loss")
+bst       <- xgb.train(param, dtrain, num_round, watchlist)
+```
+

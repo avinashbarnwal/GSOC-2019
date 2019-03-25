@@ -1,0 +1,32 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Medium1}
+\author{avinashbarnwal123 }
+\date{March 2019}
+
+\begin{document}
+
+\maketitle
+
+\begin{flushleft}
+
+\textbf{Problem} Write a vignette in LaTeX or MathJax explaining how to use the logistic loss with non-uniform weights to get the binomial loss function in xgboost.
+
+\textbf{Answer -} Logistic loss is used when y = {-1,1} and binomial loss or cross entropy or log loss function refers to cross entropy or log loss where y ={0,1}. Logistic loss is as below:-
+
+\begin{equation}
+logistic loss = \frac{-\sum_{i=1}^n2*ln(1+e^{-y_i*\hat{y_i}})}{n}   
+\end{equation}
+
+where as
+
+\begin{equation}
+binomial loss = -\frac{ylog(\hat{y})+(1-y)log(1-\hat{y})}{n}    
+\end{equation}
+
+We can adjust it by factor of 2 to get the logistic loss.
+\end{flushleft}
+
+
+\end{document}
