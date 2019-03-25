@@ -1,0 +1,52 @@
+---
+title: "Medium2"
+author: "Avinash Barnwal"
+date: "3/24/2019"
+output: html_document
+---
+
+```{r setup,include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import library and Data
+
+I have used Lung dataset with sex being the only predictor. 
+
+```{r Lib}
+library(xgboost)
+library("survival")
+data("lung")
+lung[,"y"] = ifelse(lung[,"status"]==1,-lung[,'time'],lung[,'time'])
+```
+
+## Results
+
+```{r code,echo=T}
+param <- list(  objective   = "survival:cox",
+                eta         = 0.01,
+                max.depth   = 2,
+                subsample   = 0.5,
+                nthread     = 2
+)
+
+
+df_train  <- xgb.DMatrix(as.matrix(lung[,"sex"]), label = as.matrix(lung[,"y"]))
+bstSparse <- xgb.cv(data = df_train, nrounds = 10, params = param, nfold = 5, showsd = F,prediction = T)
+
+```
+
+
+Sample output in console
+
+Iter Number : 94 Prediction: -0.682183 True: 269  
+Iter Number : 95 Prediction: -0.682183 True: 270  
+Iter Number : 96 Prediction: -0.682183 True: -279  
+Iter Number : 97 Prediction: -0.682183 True: 284  
+Iter Number : 98 Prediction: -0.682183 True: 285  
+Iter Number : 99 Prediction: -0.703774 True: 285  
+Iter Number : 100 Prediction: -0.682183 True: 286  
+Iter Number : 101 Prediction: -0.682183 True: 288  
+Iter Number : 102 Prediction: -0.682183 True: 291  
+Iter Number : 103 Prediction: -0.703774 True: -292  
+Iter Number : 104 Prediction: -0.682183 True: -292  
