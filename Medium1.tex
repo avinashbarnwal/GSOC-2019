@@ -1,5 +1,6 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
 
 \title{Medium1}
 \author{Avinash Barnwal}
@@ -13,19 +14,31 @@
 
 \textbf{Problem} Write a vignette in LaTeX or MathJax explaining how to use the logistic loss with non-uniform weights to get the binomial loss function in xgboost.
 
-\textbf{Answer -} Logistic loss is used when y = \{-1,1\} and binomial loss or cross entropy or log loss function refers to cross entropy or log loss where y = \{0,1\}. Logistic loss is as below:-
+\textbf{Answer -} 
+Following is likelihood function of binomial loss with count of trials and success :-
 
 \begin{equation}
-logistic\ loss = \frac{-\sum_{i=1}^n2*ln(1+e^{-y_i*\hat{y_i}})}{n}   
+    L(\theta;x) = \prod_{i=1}^n {n_i\choose n_iy_i}p(\theta;x)^{(n_iy_i)}(1-p(\theta;x))^{(n_i-n_iy_i)}
 \end{equation}
 
-where as
 
 \begin{equation}
-binomial\ loss = -\frac{y_ilog(\hat{y}_i)+(1-y_i)log(1-\hat{y}_i)}{n}    
+    log(L(\theta;x)) = \sum_{i=1}^n n_iy log(p(\theta;x)) + {(n_i-n_iy_i)}log(1-p(\theta;x)) + \sum_{i=1}^n log({n_i\choose n_iy_i})
 \end{equation}
 
-We can adjust it by factor of 2 to get the logistic loss.
+
+\begin{equation}
+    \hat{\theta} = \underset{\theta}{\operatorname{arg\,max}}\sum_{i=1}^n n_iy_i log(p(\theta;x)) + {(n_i-n_iy_i)}log(1-p(\theta;x)) + \sum_{i=1}^n log({n_i\choose n_iy_i})
+\end{equation}
+
+\begin{equation}
+    \hat{\theta} = \underset{\theta}{\operatorname{arg\,max}}\sum_{i=1}^n n_i\{y_i log(p(\theta;x)) + {(1-y_i)}log(1-p(\theta;x))\} + \sum_{i=1}^n log({n_i\choose n_iy_i})
+\end{equation}
+
+Above equation is nothing but logistic loss with weight $n_i$ and $y_i$ is proportions of success rather than 0-1 like in logistic loss.
+
+Therefore , for xgboost $y_i$(label in design matrix)  will change to proportion of success and weight will be passed with values equal to number of trials with logistic loss.
+
 \end{flushleft}
 
 

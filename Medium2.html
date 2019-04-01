@@ -145,16 +145,16 @@ lung[,&quot;y&quot;] = ifelse(lung[,&quot;status&quot;]==1,-lung[,'time'],lung[,
 
 df_train  &lt;- xgb.DMatrix(as.matrix(lung[,&quot;sex&quot;]), label = as.matrix(lung[,&quot;y&quot;]))
 bstSparse &lt;- xgb.cv(data = df_train, nrounds = 10, params = param, nfold = 5, showsd = F,prediction = T)</code></pre>
-<pre><code>## [1]  train-cox-nloglik:4.323825  test-cox-nloglik:2.960111 
-## [2]  train-cox-nloglik:4.323212  test-cox-nloglik:2.959527 
-## [3]  train-cox-nloglik:4.322706  test-cox-nloglik:2.959088 
-## [4]  train-cox-nloglik:4.322055  test-cox-nloglik:2.958425 
-## [5]  train-cox-nloglik:4.321476  test-cox-nloglik:2.957930 
-## [6]  train-cox-nloglik:4.321007  test-cox-nloglik:2.957534 
-## [7]  train-cox-nloglik:4.320484  test-cox-nloglik:2.956867 
-## [8]  train-cox-nloglik:4.319938  test-cox-nloglik:2.956435 
-## [9]  train-cox-nloglik:4.319222  test-cox-nloglik:2.955755 
-## [10] train-cox-nloglik:4.318852  test-cox-nloglik:2.955390</code></pre>
+<pre><code>## [1]  train-cox-nloglik:4.325408  test-cox-nloglik:2.980906 
+## [2]  train-cox-nloglik:4.324707  test-cox-nloglik:2.980228 
+## [3]  train-cox-nloglik:4.324192  test-cox-nloglik:2.979716 
+## [4]  train-cox-nloglik:4.323563  test-cox-nloglik:2.979122 
+## [5]  train-cox-nloglik:4.322896  test-cox-nloglik:2.978465 
+## [6]  train-cox-nloglik:4.322362  test-cox-nloglik:2.977881 
+## [7]  train-cox-nloglik:4.321909  test-cox-nloglik:2.977393 
+## [8]  train-cox-nloglik:4.321303  test-cox-nloglik:2.976775 
+## [9]  train-cox-nloglik:4.320720  test-cox-nloglik:2.976190 
+## [10] train-cox-nloglik:4.320322  test-cox-nloglik:2.975753</code></pre>
 <p>Sample output in console</p>
 <p>Iter Number : 94 Prediction: -0.682183 True: 269<br />
 Iter Number : 95 Prediction: -0.682183 True: 270<br />
