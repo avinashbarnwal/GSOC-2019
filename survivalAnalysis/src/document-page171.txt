@@ -1,0 +1,17 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	al Qa’ida Organization in the Land of the Two Rivers (Iraq,	2004–	1,000s	LM	NF	R	RC	—
+1	Jordan)							
+2	al-Qanoon (Pakistan)	2002	100s	L	NF	R	RC	S
+3	al-Quds Brigades (Syria, Israel, West Bank/Gaza)	1978–	100s	LM	PF	R	TC	—
+4	al-Sadr Brigades (Syria, Lebanon)	1978–	10s	UM	PF	R	PC	—
+5	al-Saiqa (Syria, Israel, West Bank/Gaza)	1966–	100s	L	NF	N	TC	—
+6	al-Umar Mujahideen (Pakistan)	1989–	100s	L	NF	R	TC	—
+7	al-Zulfikar (Afghanistan, Libya, Pakistan, India, Syria)	1977–1981	10s	L	NF	N	RC	PO
+8	Amal (Lebanon)	1975–	100s	UM	PF	N	RC	—
+9	American Front (U.S.)	1990–1995	10s	H	F	RW	SR	PO
+10	Ananda Marga (Australia, India)	1955–1979	100s	L	F	R	SR	PT
+11	Anarchist Faction (Greece)	1999–2000	10s	H	F	LW	SR	S
+12	Anarchists (Spain)	2000	10s	H	F	LW	SR	PT
+13	Andres Castro United Front (Nicaragua)	1995–2002	100s	L	PF	LW	PC	PO
+14	Angry Brigade (Italy)	1999	10s	H	F	LW	SR	PT
+15	Animal Liberation Front (Canada, U.S., UK)	1976–	10s	H	F	LW	PC	—

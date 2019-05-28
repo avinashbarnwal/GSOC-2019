@@ -1,0 +1,17 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Group of the Martyrs Mostafa Sadeki and Ali Zadeh (Iran,	1993	10s	LM	NF	N	PC	PT
+1	Switzerland)							
+2	Guadeloupe Liberation Army (Guadeloupe)	1980–1981	10s	LM	F	N	RC	PT
+3	Guardsmen of Islam (Germany, Iran)	1980–1984	10s	UM	PF	R	PC	PO
+4	Guatemalan Labor Party (Guatemala)	1952–1996	1,000s	LM	PF	LW	RC	PT
+5	Guatemalan National Revolutionary Unity (Guatemala)	1982–1996	10,000s	LM	PF	LW	RC	PT
+6	Guerrilla Army of the Poor (Guatemala)	1972–1996	1,000s	LM	PF	LW	RC	PT
+7	Guevarista Revolutionary Army (Colombia)	1993–	100s	LM	PF	LW	RC	—
+8	Hamas (Israel, West Bank/Gaza)	1987–	1,000s	LM	PF	N	TC	—
+9	Hammerskin Nation (U.S.)	1987–	100s	H	F	RW	SR	—
+10	Harakat al-Shuhada’a al-Islamiyah (Libya)	1996–	100s	UM	NF	R	RC	—
+11	Harakat ul-Jihad-i-Islami (Pakistan)	1980–	100s	L	NF	R	TC	—
+12	Harakat ul-Jihad-i-Islami/Bangladesh (Bangladesh)	1992–	1,000s	L	PF	R	RC	—
+13	Harakat ul-Mujahidin (Pakistan)	1985–	100s	L	NF	R	TC	—
+14	Harakat ul-Ansar (India, Pakistan)	1993–2002	100s	L	F	N	TC	S
+15	Hector Riobe Brigade (Haiti, U.S.)	1982–1984	10s	H	F	LW	RC	PO

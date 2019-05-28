@@ -1,0 +1,18 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Comité Argentino de Lucha Anti-Imperialisto (Argentina)	1971–1972	10s	UM	PF	LW	SR	PT
+1	Committee for Liquidation of Computers (France)	1983	10s	H	F	LW	SR	S
+2	Committee for the Security of the Highways (Israel,	1998–2001	10s	LM	PF	N	TC	PT
+3	West Bank/Gaza)							
+4	Committee of Coordination (France)	1972	10s	H	F	N	PC	PT
+5	Committee of Solidarity with Arab and Middle East Political	1985–1986	100s	H	F	N	PC	PO
+6	Prisoners (France, Iran, Lebanon)							
+7	Communist Combatant Cells (Belgium)	1985	10s	H	F	LW	SR	PO
+8	Communist Party of India-Maoist (India)	2004–	1,000s	L	F	LW	TC	—
+9	Communist Party of Nepal-Maoist (India, Nepal)	1996–2006	10,000s	L	PF	LW	RC	PT
+10	Communist Revoluitionaries in Europe (Netherlands)	1999	10s	H	F	N	TC	PT
+11	Communist Workers Movement (Turkey)	2001–2003	10s	LM	PF	LW	RC	PO
+12	Conscientious Arsonists (Greece)	1997–1998	10s	H	F	LW	SR	S
+13	Continuity Irish Republican Army (Ireland, Northern Ireland,	1986–	100s	H	F	N	TC	—
+14	UK)							
+15	Cooperative of Hand-Made Fire and Related Items (Italy)	2001–	10s	H	F	LW	SR	—
+16	Corsican Revolutionary Armed Forces (France)	1992–	10s	H	F	N	TC	—

@@ -1,0 +1,17 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Sipah-e-Sahaba Pakistan (Pakistan)	1985–	100s	L	NF	R	RC	—
+1	Socialist-Nationalist Front (Switzerland)	1988	10s		F	LW	SR	PT
+2	Sons of the South (Lebanon)	1984	10s	LM	PF	N	PC	S
+3	South Londonderry Volunteers (Northern Ireland, UK)	1998–2001	10s	H	F	N	SQ	S
+4	South Maluku Republic (Indonesia, Netherlands)	1998–	100s	LM	PF	R	TC	—
+5	South Moluccan Suicide Commando (Netherlands)	1978	10s	H	F	N	TC	PO
+6	Southern Sudan Independence Movement (Sudan)	1991–1996	1,000s	L	NF	N	TC	PT
+7	South-West Africa People’s Organization (Angola, Namibia)	1960–1989	1,000s	LM	PF	N	RC	V
+8	Sovereign Panama Front (Panama)	1992–1999	100s	UM	F	N	PC	V
+9	Spanish Basque Battalion (France, Spain)	1975–1982	10s	H	F	RW	SQ	S
+10	Spanish National Action (France, Spain)	1979	10s	H	F	RW	SQ	S
+11	Special Purpose Islamic Regiment (Georgia, Russia)	1996–	1,000s	UM	NF	N	TC	—
+12	Sri Nakharo (Malaysia, Thailand)	2001	10s	LM	F	R	TC	PO
+13	Strugglers for the Unity and Freedom of Greater Syria	2005	10s	UM	PF	N	RC	S
+14	(Lebanon)							
+15	Students Islamic Movement of India (India)	1977–	100s	L	F	R	E	—

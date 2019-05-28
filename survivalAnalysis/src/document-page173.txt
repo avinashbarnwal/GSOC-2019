@@ -1,0 +1,17 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Anti-Racist Guerrilla Nuclei (Italy)	1999	10s	H	F	LW	RC	S
+1	Anti-Terrorist Liberation Group (France, Spain)	1983–1987	100s	H	F	RW	SQ	PO
+2	Anti-Zionist Movement (Italy)	1999–2000	10s	H	F	RW	PC	PT
+3	Apo’s Revenge Hawks (Turkey)	1999	10s	LM	PF	N	TC	S
+4	Apo’s Youth Revenge Brigades (Turkey)	1999	10s	LM	PF	N	TC	S
+5	April 19 Movement (Colombia)	1970–1990	1,000s	LM	PF	LW	RC	PT
+6	Arab Communist Organization (Lebanon, Syria)	1974–1977	10s	LM	PF	LW	PC	PO
+7	Arab Communist Revolutionary Party (Jordan)	1990–1991	10s	LM	PF	LW	PC	S
+8	Arab Fedayeen Cells (Lebanon)	1986	10s	LM	PF	N	TC	S
+9	Arab Liberation Front (Iraq, Israel, West Bank/Gaza)	1969–1986	100s	UM	NF	N	TC	S
+10	Arab Nationalist Youth for the Liberation of Palestine (Libya)	1974	10s	H	NF	N	TC	PT
+11	Arab Revenge Organization (Lebanon)	1984	10s	LM	PF	N	PC	S
+12	Arab Revolutionary Front (France)	1986	10s	H	F	N	PC	S
+13	Arabian Peninsula Freemen (Belgium)	1989	10s	H	F	N	RC	S
+14	Arbav Martyrs of Khuzestan (Iran)	2005	10s	LM	NF	N	TC	S
+15	Argentine Anti-Communist Alliance (Argentina)	1974–1976	100s	UM	NF	RW	SQ	PT

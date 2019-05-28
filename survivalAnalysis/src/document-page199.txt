@@ -1,0 +1,18 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	People’s Revolutionary Party (Democratic Republic of the	1967–1997	1,000s	L	NF	LW	RC	V
+1	Congo, Tanzania, Zaire [Belgian Congo])							
+2	People’s United Liberation Front (India)	1995–	100s	L	F	R	TC	—
+3	People’s War Group (India)	1980–2004	100s	L	F	LW	TC	S
+4	Peronist Armed Forces (Argentina)	1967–1974	10s	UM	PF	LW	RC	MF
+5	Peykar (Iran, Switzerland)	1975–1982	10s	UM	NF	LW	RC	S
+6	Phineas Priests (U.S.)	1990–	10s	H	F	R	SR	—
+7	Polisario Front (Algeria, Mauritania, Morocco, Western Sahara)	1973–2005	10,000s	LM	PF	N	TC	PT
+8	Polish Revolutionary Home Army (Poland, Switzerland)	1982	10s	UM	PF	LW	PC	PO
+9	Popular Forces of April 25 (Portugal)	1981–1986	10s	UM	F	LW	RC	PO
+10	Popular Front for the Liberation of Palestine, General	1968–	100s	LM	NF	N	TC	—
+11	Command (Lebanon, Syria)							
+12	Popular Front for the Liberation of Palestine (Israel, West	1967–	100s	LM	PF	N	TC	—
+13	Bank/Gaza)							
+14	Popular Liberation Army (Colombia)	1967–	1,000s	LM	PF	LW	RC	—
+15	Popular Movement for the Liberation of Angola (Angola)	1956–1975	10,000s	L	NF	N	RC	V
+16	Popular Resistance Committees (Israel, West Bank/Gaza)	2000–	10s	LM	PF	N	TCs	—

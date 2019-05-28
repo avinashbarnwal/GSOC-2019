@@ -1,0 +1,18 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Revolutionary People’s Struggle (Greece)	1975–1995	10s	UM	F	LW	SR	S
+1	Revolutionary Perspective (Spain)	2000	10s	H	F	LW	RC	S
+2	Revolutionary Proletarian Initiative Nuclei (Italy)	2000–	10s	H	F	LW	SR	—
+3	Revolutionary Proletarian Nucleus (Italy)	2000–	10s	H	F	LW	SR	—
+4	Revolutionary Socialists (Sweden)	1999–2000	10s	H	F	LW	PC	PT
+5	Revolutionary Struggle (Greece)	2003–	10c	H	F	LW	SR	—
+6	Revolutionary United Front (Liberia, Sierra Leone)	1987–2002	10,000s	L	PF	LW	RC	MF
+7	Revolutionary United Front Movement (Honduras)	1989	10s	LM	F	LW	PC	V
+8	Revolutionary Worker Clandestine Union of the People Party	1970–	100s	UM	F	LW	RC	—
+9	(Mexico)							
+10	Riyad-us-Saliheyn Martyrs’ Brigade (Russia)	2002–	100s	UM	NF	N	TC	—
+11	Russian National Bolshevist Party (Estonia, Kyrgyzstan,	1993–	10,000s	UM	NF	LW	SR	—
+12	Moldova, Russia, Latvia)							
+13	Russian National Unity (Estonia, Latvia, Lithuania, Ukraine,	1990–	10,000s	UM	NF	RW	SR	—
+14	Russia)							
+15	Saif-ul-Muslimeen (Afghanistan)	2003–	10s	L	PF	R	RC	—
+16	Salafia Jihadia (Morocco)	1996–	100s	LM	PF	R	E	—

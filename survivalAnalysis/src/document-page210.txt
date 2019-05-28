@@ -1,0 +1,14 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Workers’ Revolutionary Party (Bolivia, Peru)	1988	10s	LM	F	LW	RC	S
+1	World Islamic Jihad Group (Yemen)	1998	10s	L	NF	R	RC	S
+2	World Punishment Organization (Switzerland)	1982	10s	H	F	N	TC	PT
+3	World United Formosans for Indepdence (Japan, Taiwan, U.S.)	1970	10s	H	F	N	TC	PT
+4	Yanikian Commandos (U.S.)	1973	10s	H	F	N	PC	V
+5	Yemen Islamic Jihad (Afghanistan, Libya, Yemen, UK, U.S.)	1990–	100s	L	PF	R	PC	—
+6	Young Liberators of Pattani (Thailand)	2002	10s	LM	F	N	TC	S
+7	Youth Action Group (France)	1974–1977	10s	H	F	LW	SR	PT
+8	Zarate Willka Armed Forces of Liberation (Bolivia)	1989	10s	LM	F	LW	PC	PT
+9	Zimbabwe African Nationalist Union (Mozambique, Rhodesia,	1965–1980	1,000s	LM	PF	N	RC	V
+10	Zimbabwe)							
+11	Zionist Action Group (Portugal)	1982	10s	UM	F	R	PC	S
+12	Zomi Revolutionary Army (India)	1997–	100s	L	F	N	TC	—

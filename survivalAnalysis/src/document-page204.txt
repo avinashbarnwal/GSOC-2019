@@ -1,0 +1,17 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Salafist Group for Call and Combat (Algeria, Mauritania, Mali,	1996–	100s	LM	NF	R	RC	—
+1	Niger)							
+2	Salah al-Din Battalions (Israel, West Bank/Gaza)	2000–	10s	LM	PF	N	TC	—
+3	Sandinistas (Nicaragua)	1960–1979	10,000s	LM	PF	LW	RC	V
+4	Saraya al-Shuhuada al-Jihadiyah fi al-Iraq (Iraq)	2004–	10s	LM	NF	R	RC	—
+5	Sardinian Autonomy Movement (Italy)	2002	10s	H	F	N	TC	PT
+6	Save Kashmir Movement (India)	2002–	10s	L	F	N	TC	—
+7	Secret Army Organization (U.S.)	1969–1972	10s	H	F	RW	SQ	PO
+8	Secret Organization Zero (U.S.)	1974–1975	10s	H	F	RW	RC	PT
+9	Sekihotai (Japan)	1987–1990	10s	H	F	RW	PC	PT
+10	Self-Defense Groups of Cordoba and Uraba (Colombia)	1994–2006	1,00s	LM	PF	RW	SQ	PT
+11	September-France (France)	1981	10s	H	F	N	TC	S
+12	Shahin (Iran)	1992	10s	LM	NF	N	TC	PT
+13	Shining Path (Peru)	1980–	1,000s	LM	F	LW	RC	—
+14	Shurafa al-Urdun (Jordan)	2001–2002	10s	LM	PF	R	E	PO
+15	Simon Bolivar Guerilla Coordinating Board (Colombia)	1987–1997	10,000s	LM	PF	LW	RC	S

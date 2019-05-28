@@ -1,0 +1,19 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Army for the Liberation of Rwanda (Democratic Republic of	1994–2002	1,000s	L	NF	N	RC	S
+1	the Congo)							
+2	Army of God (U.S.)	1982–	10s	H	F	R	PC	—
+3	Army of the Corsican People (France)	2004–	10S	H	F	N	TC	—
+4	Army of the Followers of Sunni Islam (Iraq)	2004–	10s	LM	NF	R	RC	—
+5	Arnoldo Camu Command (Chile)	1989	10s	LM	PF	LW	PC	PT
+6	Aryan Nations (U.S.)	1979–2004	100s	H	F	RW	SR	PO
+7	Asbat al-Ansar (Lebanon)	1989–	100s	UM	PF	R	RC	—
+8	Aum Shinrikyo (Australia, Germany, Indonesia, Japan, Russia,	1984–2000	10,000s	H	F	R	SR	PO
+9	Taiwan, U.S.)							
+10	Autonomia Sinistra Ante Parlamentare (Italy)	1989	10s	H	F	LW	RC	S
+11	Autonomous Cells (Federal Republic of Germany)	1987	10s	H	F	LW	SR	PT
+12	Autonomous Decorators (Germany)	1999	10s	H	F	LW	SR	PT
+13	Autonomous Intervention Collective Against the Zionist	1979	10s	H	F	N	TC	S
+14	Presence in France and Against the Israel-Egyptian Peace							
+15	Treaty (France)							
+16	Azad Hind Sena (India)	1982	10s	L	F	N	PC	PO
+17	Baader-Meinhof Group (Federal Republic of Germany)	1968–1977	100s	H	F	LW	SR	PO

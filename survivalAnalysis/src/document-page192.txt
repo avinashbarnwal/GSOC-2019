@@ -1,0 +1,17 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Macedonian Revolutionary Organization (Macedonia, Greece)	2001	1,000s	LM	PF	N	TC	PT
+1	Mahdi Army (Iraq)	2003–	1,000s	LM	NF	N	PC	—
+2	Mahir Cayan Suicide Group (Turkey)	1975	10s	LM	F	LW	RC	S
+3	Manuel Rodriguez Patriotic Front (Chile)	1989–1994	100s	UM	F	LW	PC	PO
+4	Manuel Rodriguez Patriotic Front (Chile)	1983–1989	1,000s	LM	PF	LW	RC	V
+5	Maoist Communist Center (India)	1969–2004	1,000s	L	F	LW	TC	S
+6	Mariano Moreno National Liberation Comando (Argentina)	2005	10s	UM	F	LW	PC	PT
+7	Martyr Abu-Ali Mustafa Brigades (Israel, West Bank/Gaza)	2001–	10s	LM	PF	N	TC	—
+8	Masada, Action and Defense Movement (France)	1972–1988	10s	H	F	RW	SR	PO
+9	Maximiliano Gomez Revolutionary Brigade (Dominican	1987–1987	10s	LM	F	LW	PC	PT
+10	Republic)							
+11	May 15 Organization for the Liberation of Palestine (Iraq)	1979–1985	10s	UM	NF	N	RC	S
+12	May 19 Communist Order (U.S.)	1983–1986	10s	H	F	LW	PC	PO
+13	Meinhof-Puig-Antich Group (France)	1975	10s	H	F	LW	SR	PT
+14	Mohammed’s Army (Yemen)	2000	10s	L	NF	R	RC	PO
+15	Montoneros (Argentina)	1970–1981	10s	UM	PF	LW	RC	MF

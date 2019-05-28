@@ -1,0 +1,18 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Khristos Kasimis Revolutionary Group for International	1985–1986	10s	UM	F	LW	SR	S
+1	Solidarity (Greece)							
+2	Knights of the Tempest (West Bank/Gaza)	2005–	10s	LM	PF	N	TC	—
+3	Komando Jihad (Indonesia)	1975–1981	100s	LM	PF	R	RC	PO
+4	Kosovo Liberation Army (Macedonia, Serbia, Montenegro)	1992–1999	10,000s	LM	PF	N	TC	V
+5	Ku Klux Klan (U.S.)	1866–	1,000s	H	F	RW	SR	—
+6	Kuki Liberation Army (India)	1998–2005	10s	L	F	N	TC	MF
+7	Kuki Revolutionary Army (India)	1999–	10s	L	F	N	TC	—
+8	Kumpulan Mujahidin Malaysia (Indonesia, Malaysia,	1995–	100s	UM	PF	R	E	—
+9	Philippines)							
+10	Kurdish Islamic Unity Party (Turkey)	1995	10s	LM	PF	N	TC	S
+11	Kurdish Patriotic Union (Turkey)	1994	10s	LM	PF	N	TC	S
+12	Kurdistan Freedom Hawks (Iraq, Turkey)	2004–	100s	UM	PF	N	TC	—
+13	Kurdistan Workers’ Party (Turkey)	1974–	1,000s	UM	PF	N	TC	—
+14	Lashkar-e-Jabbar (India)	2001–	10s	L	F	R	PC	—
+15	Lashkar-e-Jhangvi (India, Pakistan)	1996–	100s	L	NF	R	TC	—
+16	Lashkar-e-Taiba (India, Pakistan)	1989–	1,000s	L	NF	R	TC	—

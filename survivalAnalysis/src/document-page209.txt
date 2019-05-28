@@ -1,0 +1,17 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	United Revolutionary Front (Venezuela)	1997–1999	10s	UM	PF	LW	PC	V
+1	United Self-Defense Forces of Colombia (Colombia)	1997–2006	10,000s	LM	PF	RW	SQ	PT
+2	United Self-Defense Forces of Venezuela (Venezuela)	2002–	100s	UM	PF	RW	RC	—
+3	United Tajik Opposition (Tajikistan)	1994–2003	100s	L	NF	LW	RC	PT
+4	Up the IRS, Inc. (U.S.)	1986–1991	10s	H	F	LW	PC	PO
+5	Usd Allah (Iraq)	2004	10s	LM	NF	R	RC	S
+6	Uygur Holy War Organization (China)	2001	10s	LM	NF	N	TC	S
+7	VAR-Palmares (Brazil)	1968–1972	100s	LM	PF	LW	RC	MF
+8	Venceremos (Venezuela)	1988–1991	10s	UM	F	LW	PC	PT
+9	Vigorous Burmese Student Warriors (Burma, Thailand)	1999–	100s	L	NF	LW	RC	—
+10	Vitalunismo (France, Italy)	1999–2002	10s	H	F	N	E	PO
+11	Waffen SS (Latvia)	1998	10s	LM	F	RW	SR	PT
+12	Weather Underground Organization/Weathermen (U.S.)	1969–1977	10s	H	F	LW	PC	PO
+13	West Nile Bank Front (Democratic Republic of the Congo,	1995–2004	10,000s	L	PF	LW	RC	MF
+14	Uganda)							
+15	White Legion (Ecuador)	2001–2003	100s	LM	PF	RW	SR	S

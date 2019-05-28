@@ -1,0 +1,18 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Islamic Glory Brigades in the Land of the Nile (Egypt)	2005	10s	LM	NF	R	RC	PO
+1	Islamic Great Eastern Raiders Front (Turkey)	1970–	10s	UM	PF	R	RC	—
+2	Islamic International Peacekeeping Brigade (Azerbaijan,	1998–	100s	UM	NF	R	TC	—
+3	Turkey, Russia, Georgia)							
+4	Islamic Jihad Brigades (Iraq)	2004–	10s	LM	NF	R	RC	—
+5	Islamic Jihad Group (Uzbekistan)	2004–	10s	L	NF	R	RC	—
+6	Islamic Liberation Organization (Egypt, Lebanon)	1967–1985	10s	LM	PF	R	E	S
+7	Islamic Movement for Change (Saudi Arabia, Syria)	1995–1997	10s	UM	NF	R	E	S
+8	Islamic Movement of Uzbekistan (Afghanistan, Iran,	1998–	100s	L	NF	R	E	—
+9	Kazakhstan, Tajikistan, Kyrgyzstan, Pakistan, Uzbekistan)							
+10	Islamic Resistance Brigades (Iraq)	2004–	10s	LM	NF	R	RC	—
+11	Islamic Salvation Front (Algeria, Germany, U.S.)	1989–2000	1,000s	LM	NF	R	PC	PT
+12	Islamic Shashantantra Andolon (Bangladesh)	2002–	1,000s	L	PF	R	RC	—
+13	Jagrata Muslim Janata Bangladesh (Bangladesh)	1998–	10,000s	L	PF	R	RC	—
+14	Jaime Bateman Cayon Group (Colombia)	1989–2002	10s	LM	PF	LW	RC	PO
+15	Jaish al-Taifa al-Mansoura (Iraq)	2003–	10s	LM	NF	R	RC	—
+16	Jaish-e-Mohammad (Pakistan)	2000–	100s	L	NF	R	TC	—

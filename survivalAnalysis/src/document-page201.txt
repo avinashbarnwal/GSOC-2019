@@ -1,0 +1,17 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Rebolusyonaryong Hukbong Bayan (Philippines)	1998–	100s	LM	PF	LW	RC	—
+1	Recontra 380 (Honduras, Nicaragua)	1993–1997	100s	L	PF	RW	PC	PT
+2	Red Army Faction (Germany)	1978–1992	10s	H	F	LW	SR	PO
+3	Red Brigades (Italy)	1969–1984	100s	H	F	LW	RC	PO
+4	Red Daughters of Rage (Austria)	1995	10s	H	F	LW	SR	S
+5	Red Flag (Venezuela)	1969–1998	100s	UM	F	LW	RC	PO
+6	Red Guerrillas (Russia)	2002	10s	LM	PF	LW	RC	PT
+7	Red Hand Defenders (Northern Ireland, UK)	1998–	100s	H	F	N	SQ	—
+8	Republic of New Africa (U.S.)	1968–1971	100s	H	F	N	TC	PO
+9	Republic of Texas (U.S.)	1995–1998	100s	H	F	RW	TC	PO
+10	Resistenza Corsa (France)	2002–2003	10s	H	F	N	TC	S
+11	Revenge of the Hebrew Babies (Israel, West Bank/Gaza)	2002–2003	10s	LM	PF	N	SQ	PT
+12	Revolutionary Action Party (U.S.)	1970	10s	H	F	LW	PC	PT
+13	Revolutionary Armed Forces of Colombia (Colombia)	1964–	10,000s	LM	PF	LW	RC	—
+14	Revolutionary Armed Forces of the People (Mexico)	2000–	10s	UM	F	LW	RC	—
+15	Revolutionary Army (Japan)	2000–	10s	H	F	LW	PC	—

@@ -1,0 +1,17 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	African National Congress (S. Africa)	1961–1990	10,000s	UM	PF	N	PC	V
+1	Akhil Krantikari (Nepal)	1995–	10,000s	L	PF	LW	RC	—
+2	al-Arifeen (Pakistan)	2002–	100s	L	NF	R	TC	—
+3	al-Ahwal Brigades (Iraq)	2005–	10s	LM	NF	R	RC	—
+4	al-Aqsa Martyrs Brigades (Israel, West Bank/Gaza)	2000–	100s	LM	PF	N	TC	—
+5	al-Badr (the first) (Pakistan)	1971	100s	L	PF	N	SQ	MF
+6	al-Badr (the second) (Pakistan)	1998–	100s	L	NF	R	TC	—
+7	Albanian National Army (Macedonia)	2002–	10s	LM	PF	N	TC	—
+8	al-Bara bin Malek Brigades (Iraq, Jordan)	2005–	100s	LM	NF	R	RC	—
+9	al-Barq (India, Pakistan)	1978–2002	100s	L	NF	N	TC	S
+10	al-Borkan Liberation Organization (Italy)	1984–1985	10s	H	F	N	RC	S
+11	Alejo Calatayu (Bolivia)	1987	10s	LM	F	LW	PC	PT
+12	Alex Boncayao Brigade (Philippines)	1984–	100s	LM	PF	LW	RC	—
+13	al-Faran (India)	1995	10s	L	PF	N	TC	S
+14	al-Faruq Brigades (Iraq)	2003–	10s	LM	NF	R	RC	—
+15	al-Fatah (Israel, West Bank/Gaza)	1958–	10,000s	LM	PF	N	TC	—

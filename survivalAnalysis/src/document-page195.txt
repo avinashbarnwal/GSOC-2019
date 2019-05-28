@@ -1,0 +1,17 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	National Liberation Army (the first) (Bolivia)	1966–1970	100s	LM	PF	LW	RC	MF
+1	National Liberation Army (the second) (Bolivia)	1987–2003	100s	LM	F	LW	RC	PO
+2	National Liberation Army (Colombia)	1964–	1,000s	LM	PF	LW	RC	—
+3	National Liberation Front of Tripura (Bangladesh, India)	1989–	1,000s	L	F	N	TC	—
+4	National Liberation Union (Suriname)	1989	10s	UM	PF	LW	PC	S
+5	National Patriotic Front of Liberia (Cote d’Ivoire, Liberia, Libya)	1984–1995	1,000s	L	NF	LW	RC	V
+6	National Revolutionary Command (Lebanon)	1986	10s	LM	PF	N	PC	S
+7	National Socialist Council of Nagaland-Isak-Muivah (India)	1988–	1,000s	L	F	N	TC	—
+8	National Socialist Council of Nagaland-Khaplang (Burma,	1988–	1,000s	L	F	N	TC	—
+9	India)							
+10	National Union for the Total Independence of Angola	1966–2002	1,000s	L	NF	LW	RC	PT
+11	(Angola)							
+12	National Warriors (South Africa)	2002	10s	LM	F	RW	TC	PT
+13	National Youth Reistance Organization (Italy)	1973	10s	H	F	LW	RC	S
+14	Nationalist Kurdish Revenge Teams (Turkey)	1999	10s	LM	PF	N	TC	S
+15	Nestor Paz Zamora Commission (Bolivia)	1990–1991	10s	LM	F	LW	RC	S

@@ -1,0 +1,17 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Counter-Revolutionary Solidarity (Guatemala)	1983	10s	LM	NF	RW	SQ	PT
+1	Covenant, Sword, and Arm of the Lord (U.S.)	1978–1985	10s	H	F	RW	SR	PO
+2	Croatian Freedom Fighters (U.S.)	1976–1982	10s	H	F	N	TC	PO
+3	Cypriot Nationalist Organization (Cyprus)	2004	10s	H	F	N	SQ	PT
+4	Dagestan Liberation Army (Russia)	1999–2004	10s	UM	NF	N	TC	PO
+5	Dagestani Shari’ah Jamaat (Russia)	2002–	100s	UM	NF	N	TC	—
+6	Dario Santillan Command (Argentina)	2004	10s	UM	F	LW	PC	PT
+7	de Fes (France, Morocco)	1994	10s	LM	PF	R	RC	PO
+8	December 20 Movement (Panama)	1990–1992	100s	LM	PF	RW	RC	PT
+9	Democratic Front for the Liberation of Palestine (Israel, West	1969–	100s	LM	PF	N	TC	—
+10	Bank/Gaza)							
+11	DHKP/C (Turkey)	1994–	100s	UM	PF	LW	RC	—
+12	Dima Halam Daoga (India)	1996–	100s	L	F	N	TC	—
+13	Divine Wrath Brigades (Iraq)	2004–	10s	LM	NF	R	RC	—
+14	Dukhtaran-e-Millat (India)	1987–	10s	L	F	R	TC	—
+15	Earth Liberation Front (Canada, U.S., UK)	1992–	10s	H	F	LW	PC	—

@@ -1,0 +1,17 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Abu al-Rish Brigades (West Bank/Gaza)	1993–	100s	LM	PF	N	TC	—
+1	Abu Bakr al-Siddiq Fundamentalist Brigades (Iraq)	2004	10s	LM	NF	R	PC	S
+2	Abu Hafs al-Masri Brigade (Spain, UK)	2003–	10s	H	F	R	E	—
+3	Abu Nayaf al-Afghani (Spain)	2004	10s	H	F	R	E	S
+4	Abu Nidal Organization (Iraq, Libya, Syria)	1974–2002	100s	LM	NF	N	TC	PO
+5	Abu Sayyaf Group (Philippines)	1991–	100s	LM	PF	R	E	—
+6	Accolta Nazinuale Corsa (France)	2002–2003	10s	H	F	N	TC	S
+7	Achik National Volunteer Council (Bangladesh, Burma, India)	1995–	100s	L	F	N	TC	—
+8	Actiefront Nationistisch Nederland (Netherlands)	1992	10s	H	F	RW	PC	PT
+9	Action Commitee of WInegrowers (France)	1999–	10s	H	F	LW	PC	—
+10	Action Directe (France)	1979–1987	100s	H	F	LW	SR	PO
+11	Action Front for the Liberation of the Baltic Countries (France)	1977	10s	H	F	N	SQ	V
+12	Action Group Extreme Beate (Denmark)	2005	10s	H	F	LW	PC	PO
+13	Aden Abyan Islamic Army (Yemen)	1994–	10s	L	PF	R	RC	—
+14	Adivasi Cobra Force (India)	1996–	100s	L	F	N	PC	—
+15	Affiche Rouge (France)	1981–1986	10s	H	F	LW	SR	PO

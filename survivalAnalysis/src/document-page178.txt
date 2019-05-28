@@ -1,0 +1,18 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Cell for Internationalism (Austria)	1995	10s	H	F	LW	RC	S
+1	Chadian People’s Revolutionary Movement (Chad, Congo)	1982–1988	1,000s	L	NF	N	RC	PT
+2	Charles Martel Group (France)	1975–1983	100s	H	F	RW	PC	PT
+3	Che Guevara Anti-Imperialist Command (Argentina)	2005	10s	UM	F	LW	SR	PT
+4	Che Guevara Brigade (Argentina)	1976–1990	10s	LM	F	LW	PC	S
+5	Chilean Committee of Support for the Peruvian Revolution	1992	10s	LM	F	LW	SR	S
+6	(Chile)							
+7	Chukakuha (Japan)	1963–	100s	H	F	LW	PC	—
+8	Cinchoneros Popular Liberation Movement (Honduras,	1980–1991	100s	L	F	LW	PC	MF
+9	Nicaragua)							
+10	Clandestini (France)	1999	10s	H	F	N	TC	S
+11	Clandestini Corsi (France)	1999–	100s	H	F	RW	PC	—
+12	Coalition of National Brigades (Haiti)	1973	10s	L	NF	LW	RC	PT
+13	Colonel Karuna Faction (Sri Lanka)	2004–	1,000s	LM	PF	N	TC	—
+14	Comando Internacionalista Simon Bolivar (Mexico)	1986–1987	10s	LM	PF	LW	PC	PT
+15	Comando Jaramillista Morelense 23 de Mayo (Mexico)	2004	10s	UM	F	LW	PC	PT
+16	Combatant Proletarian Nucleus (Italy)	2002	10s	H	F	LW	RC	S

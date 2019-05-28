@@ -1,0 +1,17 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	Mujahideen al-Mansooran (India)	2002	10s	L	F	N	TC	S
+1	Mujahideen Division Khandaq (Indonesia, Malaysia)	2000	10s	L	PF	R	TC	S
+2	Mujahideen KOMPAK (Indonesia)	2001–	100s	LM	F	R	RC	—
+3	Mujahideen Message (Afghanistan)	2003–	10s	L	PF	R	RC	—
+4	Mujahideen Shura Council (Iraq)	2005–	1,000s	LM	NF	R	RC	—
+5	Muslim United Army (Pakistan)	2002–2003	10s	L	NF	R	RC	S
+6	Muslims Against Global Oppression (South Africa)	1998	100s	LM	F	R	PC	S
+7	Muttahida Qami Movement (Pakistan)	1978–2001	1,000s	L	NF	N	PC	PT
+8	Nation of Yahweh (U.S.)	1979–1995	100s	H	F	R	SR	PO
+9	National Anti-Corruption Front (Bolivia)	2005–	10s	LM	PF	LW	PC	—
+10	National Army for the Liberation of Uganda (Democratic	1988–	1,000s	L	PF	N	RC	—
+11	Republic of the Congo, Uganda)							
+12	National Democratic Front of Bodoland (Bhutan, Burma, India)	1988–	1,000s	L	F	N	TC	—
+13	National Front for the Liberation of Angola (Angola,	1962–1990	1,000s	LM	NF	N	RC	MF
+14	Democratic Republic of the Congo)							
+15	National Front for the Liberation of Kurdistan (France, Greece,	1985–	1,000s	H	F	N	TC	—

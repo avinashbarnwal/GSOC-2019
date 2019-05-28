@@ -1,0 +1,18 @@
+	Organization	Operating	Peak Size	Econ.a	Regimeb	Typec	Goald	Endede
+0	New Armenian Resistance (Belgium, France, Italy, UK,	1977–1983	10s	H	F	N	TC	S
+1	Armenia)							
+2	New People’s Army (Philippines)	1969–	10,000s	LM	PF	LW	RC	—
+3	New Red Brigades/Communist Combatant Party (Italy)	1984–	10s	H	F	LW	RC	—
+4	New Revolutionary Alternative (Russia)	1996–2001	10s	LM	PF	LW	RC	PO
+5	Night Avengers (Honduras)	1997–1998	10s	L	F	RW	PC	PT
+6	Ninth of June Organization (France)	1981–1982	10s	H	F	N	PC	S
+7	November’s Children (Greece)	1996–2001	10s	H	F	LW	SR	S
+8	Nuclei Armati Comunista (Italy)	1982	10s	H	F	LW	RC	S
+9	Nuclei Communist Combatants (Italy)	1994	10s	H	F	LW	RC	PT
+10	Nusantara Islamic Jihad Forces (Indonesia)	1999	100s	L	PF	R	E	S
+11	Odua Peoples’ Congress (Nigeria)	1995–	100s	L	PF	N	TC	—
+12	Ogaden National Liberation Front (Ethiopia, Somalia)	1984–	100s	L	PF	N	TC	—
+13	Oklahoma City Bombing Conspirators (U.S.)	1995	10s	H	F	RW	RC	PO
+14	Omar Torrijos Commando for Latin American Dignity	1989–1990	10s	UM	F	N	PC	V
+15	(Panama, Venezuela)							
+16	Omega-7 (U.S.)	1974–1983	10s	H	F	N	RC	PO
