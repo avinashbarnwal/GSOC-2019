@@ -28,7 +28,9 @@ def aft_negative_gradient(cnp.npy_double[:] y_lower,
             event[i] = 'left'
         else:
             event[i] = 'right'
+            
     cdef cnp.npy_double[:] exp_pred = np.exp(y_pred)
+    
     with nogil:
         if dist == 'normal':
             for i in range(n_samples):
