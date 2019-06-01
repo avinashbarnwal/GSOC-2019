@@ -52,6 +52,8 @@ for(i in patients){
     })
   }
 }
+
+
 lab.df <- ovarian[patients,]
 lab.df$label <- c("survival greater\nthan this time",
                   "died at\nthis time")
