@@ -1,14 +1,11 @@
-
 library(ggplot2)
-
-setwd('/Users/avinashbarnwal/Desktop/Personal/gsoc/AFT/R/')
+setwd('/Users/avinashbarnwal/Desktop/Personal/GSOC-2019/AFT/R')
 #http://home.iitk.ac.in/~kundu/paper146.pdf
 
 set.seed(2)
-sigma    = 1
 n.points = 15
 
-loss_lognormal <- function(type="left",t.lower=NULL,t.higher=NULL,y.hat=1){
+loss_lognormal <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=1){
   
   n.points      = length(y.hat)
   t.lower.col   = rep(t.lower,n.points)
@@ -43,7 +40,7 @@ loss_lognormal <- function(type="left",t.lower=NULL,t.higher=NULL,y.hat=1){
 }
 
 
-loss_loglogistic <- function(type="left",t.lower=NULL,t.higher=NULL,y.hat=1){
+loss_loglogistic <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=sqrt(pi^2/6),y.hat=1){
   
   n.points      = length(y.hat)
   t.lower.col   = rep(t.lower,n.points)
@@ -77,14 +74,14 @@ loss_loglogistic <- function(type="left",t.lower=NULL,t.higher=NULL,y.hat=1){
 }
 n.points = 20
 x.lim    = 15
-distribution.list <- list(gaussian=list(uncensored=loss_lognormal(type="uncensored",t.lower=100,t.higher=100,y.hat=2**(seq(1,x.lim,length=n.points))),
-                                        left=loss_lognormal(type="left",t.lower=-Inf,t.higher=20,y.hat=2**(seq(1,x.lim,length=n.points))),
-                                        right=loss_lognormal(type="right",t.lower=60,t.higher=Inf,y.hat=2**(seq(1,x.lim,length=n.points))),
-                                        interval=loss_lognormal(type="interval",t.lower=16,t.higher=200,y.hat=2**(seq(1,x.lim,length=n.points)))),
-                          logistic=list(uncensored=loss_loglogistic(type="uncensored",t.lower=100,t.higher=100,y.hat=2**(seq(1,x.lim,length=n.points))),
-                                        left=loss_loglogistic(type="left",t.lower=-Inf,t.higher=20,y.hat=2**(seq(1,x.lim,length=n.points))),
-                                        right=loss_loglogistic(type="right",t.lower=60,t.higher=Inf,y.hat=2**(seq(1,x.lim,length=n.points))),
-                                        interval=loss_loglogistic(type="interval",t.lower=16,t.higher=200,y.hat=2**(seq(1,x.lim,length=n.points)))))
+distribution.list <- list(gaussian=list(uncensored=loss_lognormal(type="uncensored",t.lower=100,t.higher=100,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points))),
+                                        left=loss_lognormal(type="left",t.lower=-Inf,t.higher=20,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points))),
+                                        right=loss_lognormal(type="right",t.lower=60,t.higher=Inf,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points))),
+                                        interval=loss_lognormal(type="interval",t.lower=16,t.higher=200,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)))),
+                          logistic=list(uncensored=loss_loglogistic(type="uncensored",t.lower=100,t.higher=100,sigma=sqrt(pi^2/6),y.hat=2**(seq(1,x.lim,length=n.points))),
+                                        left=loss_loglogistic(type="left",t.lower=-Inf,t.higher=20,sigma=sqrt(pi^2/6),y.hat=2**(seq(1,x.lim,length=n.points))),
+                                        right=loss_loglogistic(type="right",t.lower=60,t.higher=Inf,sigma=sqrt(pi^2/6),y.hat=2**(seq(1,x.lim,length=n.points))),
+                                        interval=loss_loglogistic(type="interval",t.lower=16,t.higher=200,sigma=sqrt(pi^2/6),y.hat=2**(seq(1,x.lim,length=n.points)))))
 
 data_complete_list <- list()
 for(distribution in names(distribution.list)){
@@ -95,7 +92,8 @@ for(distribution in names(distribution.list)){
 }
 
 data_complete <- do.call(rbind, data_complete_list)
-png("loss_aft.png", width = 800, height = 600)
+
+#png("loss_aft.png", width = 800, height = 600)
 
 p <- ggplot(data=data_complete) +
      geom_line(aes(x=y.hat,y=cost,colour=dist_type),
@@ -103,9 +101,9 @@ p <- ggplot(data=data_complete) +
      geom_point(aes(t.lower.col,y=0),data=data_complete) +
      geom_point(aes(t.higher.col,y=0),data=data_complete)+ theme(legend.position=c(0.1,0.8))+
      ylab("loss function L_i(y_pred)")+
-     xlab("predicted survival time y_pred in days (log_2 scale)") + facet_grid(. ~ data_type,scales="free") +
-     scale_color_discrete(name = "Distribution", labels = c("Logistic", "Normal"))
+     xlab("predicted survival time y_pred in days (log_2 scale)") + facet_grid(. ~ data_type,scales="free") + 
+     scale_color_discrete(name = "Distribution")
 p
-dev.off()
+#dev.off()
 
 
