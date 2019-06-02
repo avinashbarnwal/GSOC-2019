@@ -1,9 +1,9 @@
 library(ggplot2)
 setwd('/Users/avinashbarnwal/Desktop/Personal/GSOC-2019/AFT/R')
 #http://home.iitk.ac.in/~kundu/paper146.pdf
+#https://www.mathworks.com/matlabcentral/answers/428624-cdf-for-loglogistic-distribution
 
 set.seed(2)
-n.points = 15
 
 loss_lognormal <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=1){
   
@@ -13,7 +13,7 @@ loss_lognormal <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=
   dist_type     = rep("Normal",n.points)
   
   if(type=="uncensored"){
-    cost  = -log(1/(y.hat*sigma*sqrt(2*pi))*exp((log(t.lower/y.hat))**2/(-2*sigma*sigma)))
+    cost  = -log(1/(t.lower*sigma*sqrt(2*pi))*exp((log(t.lower/y.hat))**2/(-2*sigma*sigma)))
     data_type     = rep("Uncensored",n.points)
     data = data.frame(y.hat = y.hat,cost=cost,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
     return(data)
