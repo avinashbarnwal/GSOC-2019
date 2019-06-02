@@ -95,9 +95,7 @@ for(distribution in names(distribution.list)){
 }
 
 data_complete <- do.call(rbind, data_complete_list)
-
 png("loss_aft.png", width = 800, height = 600)
-
 
 p <- ggplot(data=data_complete) +
      geom_line(aes(x=y.hat,y=cost,colour=dist_type),
@@ -107,7 +105,6 @@ p <- ggplot(data=data_complete) +
      ylab("loss function L_i(y_pred)")+
      xlab("predicted survival time y_pred in days (log_2 scale)") + facet_grid(. ~ data_type,scales="free") +
      scale_color_discrete(name = "Distribution", labels = c("Logistic", "Normal"))
-
 p
 dev.off()
 
