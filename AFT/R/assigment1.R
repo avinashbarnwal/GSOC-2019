@@ -13,7 +13,6 @@ loss_lognormal <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=
   dist_type     = rep("Normal",n.points)
   
   if(type=="uncensored"){
-    
     cost  = -log(1/(y.hat*sigma*sqrt(2*pi))*exp((log(t.lower/y.hat))**2/(-2*sigma*sigma)))
     data_type     = rep("Uncensored",n.points)
     data = data.frame(y.hat = y.hat,cost=cost,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
