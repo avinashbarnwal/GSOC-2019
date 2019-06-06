@@ -38,7 +38,6 @@ loss_lognormal <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=
   }
 }
 
-
 loss_loglogistic <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=sqrt(pi^2/6),y.hat=1){
   
   n.points      = length(y.hat)
@@ -52,12 +51,14 @@ loss_loglogistic <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=sqrt(p
     data = data.frame(y.hat = y.hat,cost=cost,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
     return(data)
   }
+  
   else if(type=="left"){
     cost       = -log(exp(log(t.higher/y.hat)/sigma)/(1+exp(log(t.higher/y.hat)/sigma)))
     data_type     = rep("Left",n.points)
     data = data.frame(y.hat = y.hat,cost=cost,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
     return(data)
   }
+  
   else if(type=="right"){
     cost      = -log(1- exp(log(t.lower/y.hat)/sigma)/(1+exp(log(t.lower/y.hat)/sigma)))
     data_type     = rep("Right",n.points)
@@ -71,6 +72,43 @@ loss_loglogistic <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=sqrt(p
     return(data)
   }
 }
+
+
+gradient_lognormal <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=1){
+  
+  n.points      = length(y.hat)
+  t.lower.col   = rep(t.lower,n.points)
+  t.higher.col  = rep(t.higher,n.points)
+  dist_type     = rep("Normal",n.points)
+  
+  if(type=="uncensored"){
+    neg_grad  = t.lower*(sigma -log(t.lower/y.hat))/(sigma*y.hat**2) 
+    data_type     = rep("Uncensored",n.points)
+    data = data.frame(y.hat = y.hat,cost=cost,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
+    return(data)
+  } 
+  else if(type=="left"){
+    cost       = -log(pnorm(log(t.higher/y.hat)/sigma))
+    data_type     = rep("Left",n.points)
+    data = data.frame(y.hat = y.hat,cost=cost,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
+    return(data)
+  }
+  else if(type=="right"){
+    cost      = -log(1-pnorm(log(t.lower/y.hat)/sigma))
+    data_type     = rep("Right",n.points)
+    data = data.frame(y.hat = y.hat,cost=cost,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
+    return(data)
+  }
+  else{
+    cost   = -log(pnorm(log(t.higher/y.hat)/(sigma)) - pnorm(log(t.lower/y.hat)/(sigma)))
+    data_type     = rep("Interval",n.points)
+    data = data.frame(y.hat = y.hat,cost=cost,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
+    return(data)
+  }
+}
+
+
+
 n.points = 20
 x.lim    = 15
 distribution.list <- list(gaussian=list(uncensored=loss_lognormal(type="uncensored",t.lower=100,t.higher=100,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points))),
