@@ -204,14 +204,14 @@ hessian <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=1,dist=
   }
   if(type=="interval"){
     z_u           = (log(t.higher) - log(y.hat))/sigma
-    z_l           = (log(t.lower) - log(y.hat))/sigma
+    z_l           = (log(t.lower)  - log(y.hat))/sigma
     f_z_u         = f_z(z_u,dist)
     f_z_l         = f_z(z_l,dist)
     F_z_u         = F_z(z_u,dist)
     F_z_l         = F_z(z_l,dist)
     grad_f_z_u    = grad_f_z(z_u,dist)
     grad_f_z_l    = grad_f_z(z_l,dist) 
-    hess          = ((F_z_u-F_z_l)*(grad_f_z_u-grad_f_z_l)-(f_z_u**2-f_z_l**2))/(sigma**2*(F_z_u-F_z_l)**2)
+    hess          = ((F_z_u-F_z_l)*(grad_f_z_u+grad_f_z_l)-(f_z_u**2-f_z_l**2))/(sigma**2*(F_z_u-F_z_l)**2)
     data_type     = rep("Interval",n.points)
     parameter_type = rep('Hessian',n.points)
     data          = data.frame(y.hat = y.hat,parameter=hess,parameter_type = parameter_type,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
@@ -256,9 +256,7 @@ for(distribution in names(distribution.list)){
 }
 
 data_complete <- do.call(rbind, data_complete_list)
-
 png("loss_grad_hess_aft.png", width = 800, height = 600)
-
 p <- ggplot(data=data_complete) +
   geom_line(aes(x=y.hat,y=parameter,colour=dist_type),
             data=data_complete,size=1) + scale_x_continuous(trans='log2') +
