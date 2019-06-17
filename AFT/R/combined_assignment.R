@@ -263,7 +263,7 @@ p <- ggplot(data=data_complete) +
   geom_line(aes(x=y.hat,y=parameter,colour=dist_type),
             data=data_complete,size=1) + scale_x_continuous(trans='log2') +
   geom_point(aes(t.lower.col,y=0),data=data_complete) +
-  geom_point(aes(t.higher.col,y=0),data=data_complete)+ theme(legend.position=c(0.1,0.8)) +
+  geom_point(aes(t.higher.col,y=0),data=data_complete)+ theme(legend.position=c(0.1,0.9)) +
   ylab("loss function L_i(y_pred)")+
   xlab("predicted survival time y_pred in days (log_2 scale)") + facet_grid(parameter_type ~data_type ,scales="free") + 
   scale_color_discrete(name = "Distribution")
