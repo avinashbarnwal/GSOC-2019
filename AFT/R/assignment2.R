@@ -77,23 +77,26 @@ neg_grad <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=1,dist
     f_z           = f_z(z,dist)
     neg_grad      = -grad_f_z(z,dist)/(sigma*f_z(z,dist))
     data_type     = rep("Uncensored",n.points)
-    data          = data.frame(y.hat = y.hat,neg_grad=neg_grad,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
+    parameter_type = rep('Negative Gradient',n.points)
+    data          = data.frame(y.hat = y.hat,parameter=neg_grad,parameter_type = 'Hessian',data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
     return(data)
   }
   if(type=="left"){
-    z             = (log(t.higher) - log(y.hat))/sigma
-    f_z           = f_z(z,dist)
-    neg_grad      = -f_z/(sigma*F_z(z,dist))
-    data_type     = rep("Left",n.points)
-    data          = data.frame(y.hat = y.hat,neg_grad=neg_grad,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
+    z              = (log(t.higher) - log(y.hat))/sigma
+    f_z            = f_z(z,dist)
+    neg_grad       = -f_z/(sigma*F_z(z,dist))
+    data_type      = rep("Left",n.points)
+    parameter_type = rep('Negative Gradient',n.points)
+    data           = data.frame(y.hat = y.hat,parameter=neg_grad,parameter_type = 'Hessian',data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
     return(data)
   }
   if(type=="right"){
-    z             = (log(t.lower) - log(y.hat))/sigma
-    f_z           = f_z(z,dist)
-    neg_grad      = f_z/(sigma*(1-F_z(z,dist)))
-    data_type     = rep("Right",n.points)
-    data          = data.frame(y.hat = y.hat,neg_grad=neg_grad,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
+    z              = (log(t.lower) - log(y.hat))/sigma
+    f_z            = f_z(z,dist)
+    neg_grad       = f_z/(sigma*(1-F_z(z,dist)))
+    data_type      = rep("Right",n.points)
+    parameter_type = rep('Negative Gradient',n.points)
+    data           = data.frame(y.hat = y.hat,parameter=neg_grad,parameter_type = 'Hessian',data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
     return(data)
   }
   if(type=="interval"){
@@ -105,7 +108,8 @@ neg_grad <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=1,dist
     F_z_l         = F_z(z_l,dist)
     neg_grad      = -(f_z_u-f_z_l)/(sigma*(F_z_u-F_z_l))
     data_type     = rep("Right",n.points)
-    data          = data.frame(y.hat = y.hat,neg_grad=neg_grad,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
+    parameter_type = rep('Negative Gradient',n.points)
+    data          = data.frame(y.hat = y.hat,parameter=neg_grad,parameter_type = 'Hessian',data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
     return(data)
   }
 }
@@ -121,25 +125,34 @@ hessian <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=1,dist=
   if(type=="uncensored"){
     z             = (log(t.lower) - log(y.hat))/sigma  
     f_z           = f_z(z,dist)
-    neg_grad      = -grad_f_z(z,dist)/(sigma*f_z(z,dist))
+    grad_f_z      = grad_f_z(z,dist)
+    hes_f_z       = hes_f_z(z,dist)
+    hess           = -grad_f_z(z,dist)/(sigma*f_z(z,dist))
     data_type     = rep("Uncensored",n.points)
-    data          = data.frame(y.hat = y.hat,neg_grad=neg_grad,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
+    parameter_type = rep('Hessian',n.points)
+    data          = data.frame(y.hat = y.hat,parameter=hess,parameter_type = 'Hessian',data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
     return(data)
   }
   if(type=="left"){
     z             = (log(t.higher) - log(y.hat))/sigma
     f_z           = f_z(z,dist)
-    neg_grad      = -f_z/(sigma*F_z(z,dist))
+    F_z           = F_z(z,dist)
+    grad_f_z      = grad_f_z(z,dist)
+    hess          = -(F_z*grad_f_z-f_z**2)/(sigma**2*F_z**2)
     data_type     = rep("Left",n.points)
-    data          = data.frame(y.hat = y.hat,neg_grad=neg_grad,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
+    parameter_type = rep('Hessian',n.points)
+    data          = data.frame(y.hat = y.hat,parameter=hess,parameter_type = 'Hessian',data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
     return(data)
   }
   if(type=="right"){
     z             = (log(t.lower) - log(y.hat))/sigma
     f_z           = f_z(z,dist)
-    neg_grad      = f_z/(sigma*(1-F_z(z,dist)))
+    F_z           = F_z(z,dist)
+    grad_f_z      = grad_f_z(z,dist)
+    hess          = -((1-F_z)*grad_f_z+f_z**2)/(sigma**2*(1-F_z)**2)
     data_type     = rep("Right",n.points)
-    data          = data.frame(y.hat = y.hat,neg_grad=neg_grad,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
+    parameter_type = rep('Hessian',n.points)
+    data          = data.frame(y.hat = y.hat,parameter=hess,parameter_type = 'Hessian',data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
     return(data)
   }
   if(type=="interval"){
@@ -149,11 +162,13 @@ hessian <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=1,dist=
     f_z_l         = f_z(z_l,dist)
     F_z_u         = F_z(z_u,dist)
     F_z_l         = F_z(z_l,dist)
-    neg_grad      = -(f_z_u-f_z_l)/(sigma*(F_z_u-F_z_l))
+    grad_f_z_u    = grad_f_z(z_u,dist)
+    grad_f_z_l    = grad_f_z(z_l,dist) 
+    hess          = ((F_z_u-F_z_l)*(grad_f_z_u-grad_f_z_l)-(f_z_u**2-f_z_l**2))/(sigma**2*(F_z_u-F_z_l)**2)
     data_type     = rep("Right",n.points)
-    data          = data.frame(y.hat = y.hat,neg_grad=neg_grad,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
+    parameter_type = rep('Hessian',n.points)
+    data          = data.frame(y.hat = y.hat,parameter=hess,parameter_type = 'Hessian',data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
     return(data)
   }
 }
 
-  
