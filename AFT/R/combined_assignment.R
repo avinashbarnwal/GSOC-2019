@@ -4,7 +4,7 @@ setwd('/Users/avinashbarnwal/Desktop/Personal/GSOC-2019/AFT/R')
 
 
 z <- function(t.obs=t.obs,y.hat=y.hat,sigma=sigma){
-  z= (log(t.obs)-log(y.hat))/sigma
+  z = (log(t.obs)-log(y.hat))/sigma
   return(z)
 }
 
@@ -32,11 +32,11 @@ grad_f_z <- function(z=z,dist='logistic'){
 hes_f_z <- function(z=z,dist='logistic'){
   f_z = f_z(z,dist)
   if(dist=='normal'){
-    hes_f_z = -f_z - z*grad_f_z(z,dist)    
+    hes_f_z = (z**2-1)*f_z    
   }
   if(dist=='logistic'){
-    w = exp(1)**z
-    hes_f_z = ((1-w)*grad_f_z(z,dist))/(1+w) - f_z/(1+w)
+    w       = exp(1)**z
+    hes_f_z = f_z*(w**2-4*w+1)/(1+w)**2 
   }
   return(hes_f_z)
 }
@@ -123,7 +123,7 @@ neg_grad <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=1,dist
   if(type=="uncensored"){
     z             = (log(t.lower) - log(y.hat))/sigma  
     f_z           = f_z(z,dist)
-    neg_grad      = -grad_f_z(z,dist)/(sigma*f_z(z,dist))
+    neg_grad      = -grad_f_z(z,dist)/(sigma*f_z)
     data_type     = rep("Uncensored",n.points)
     parameter_type = rep('Negative Gradient',n.points)
     data          = data.frame(y.hat = y.hat,parameter=neg_grad,parameter_type = parameter_type,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
