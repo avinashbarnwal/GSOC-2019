@@ -10,6 +10,7 @@ cnp.import_array()
 @cython.boundscheck(False)
 
 def getEventType(cnp.npy_double y_lower, cnp.npy_double y_higher):
+    
     if y_lower==y_higher:
         return 'uncensored'
     elif y_lower != -float('inf') and y_higher != float('inf'):
@@ -37,7 +38,6 @@ def grad_f_z(cnp.npy_double z, char* dist = 'logistic'):
     if dist == 'normal':
         grad_f_z = -z*f_z
     return grad_f_z
-
 
 def hes_f_z(cnp.npy_double z, char* dist = 'logistic'):
     f_z = f_z(z,dist)
@@ -92,54 +92,6 @@ def _neg_grad(cnp.npy_double y_lower, cnp.npy_double y_higher, cnp.npy_double y_
         _neg_grad     = -(f_z_u-f_z_l)/(sigma*(F_z_u-F_z_l))
         return _neg_grad
     
-loss <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=1,dist='normal'){
-  
-  n.points      = length(y.hat)
-  t.lower.col   = rep(t.lower,n.points)
-  t.higher.col  = rep(t.higher,n.points)
-  dist_type     = rep(dist,n.points)
-  
-  if(type=="uncensored"){
-    z     = (log(t.lower) - log(y.hat))/sigma  
-    f_z   = f_z(z,dist)
-    cost  = -log(f_z/(sigma*t.lower))
-    data_type     = rep("Uncensored",n.points)
-    parameter_type = rep('Loss',n.points)
-    data          = data.frame(y.hat = y.hat,parameter=cost,parameter_type = parameter_type,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
-    return(data)
-  } 
-  else if(type=="left"){
-    z             = (log(t.higher) - log(y.hat))/sigma
-    F_z           = F_z(z,dist)
-    cost          = -log(F_z)
-    data_type     = rep("Left",n.points)
-    parameter_type = rep('Loss',n.points)
-    data          = data.frame(y.hat = y.hat,parameter=cost,parameter_type = parameter_type,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
-    return(data)
-  }
-  else if(type=="right"){
-    z             = (log(t.lower) - log(y.hat))/sigma
-    F_z           = F_z(z,dist)
-    cost          = -log(1-F_z)
-    data_type     = rep("Right",n.points)
-    parameter_type = rep('Loss',n.points)
-    data          = data.frame(y.hat = y.hat,parameter=cost,parameter_type = parameter_type,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
-    return(data)
-  }
-  else{
-    z_u    = (log(t.higher) - log(y.hat))/sigma
-    z_l    = (log(t.lower) - log(y.hat))/sigma
-    F_z_u  = F_z(z_u,dist)
-    F_z_l  = F_z(z_l,dist)
-    cost   = -log(F_z_u - F_z_l)
-    data_type     = rep("Interval",n.points)
-    parameter_type = rep('Loss',n.points)
-    data          = data.frame(y.hat = y.hat,parameter=cost,parameter_type = parameter_type,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
-    return(data)
-  }
-}
-    
-    
 def _loss(cnp.npy_double y_lower, cnp.npy_double y_higher, cnp.npy_double y_pred, cnp.npy_double sigma, char* type = 'left', char* dist = 'normal'):
     if type=='uncensored':
         z    = (math.log(y_lower)-y_pred)/sigma
@@ -165,10 +117,7 @@ def _loss(cnp.npy_double y_lower, cnp.npy_double y_higher, cnp.npy_double y_pred
         F_z_l = F_z(z_l,dist)
         cost  = -math.log(F_z_u - F_z_l)
         return cost
-    
-    
-    
-    
+
 def negative_gradient(cnp.npy_double[:] y_lower,
                       cnp.npy_double[:] y_higher,
                       cnp.npy_double[:] y_pred,
@@ -205,47 +154,13 @@ def loss(cnp.npy_double[:] y_lower,
              char* dist = dist,
              cnp.npy_double sigma):
     
-    cdef cnp.npy_intp n_samples = len(y_lower)
-    cdef cnp.ndarray[cnp.npy_string, ndim=1] event = cnp.PyArray_EMPTY(1, &n_samples, cnp.NPY_STRING, 0)
-    cdef cnp.npy_double loss = 0
-    cdef cnp.npy_double[:] exp_pred = np.exp(y_pred)
+    cdef cnp.npy_intp n = len(y_lower)
+    cdef cnp.ndarray[cnp.npy_double, ndim=1] gradient   = cnp.PyArray_EMPTY(1, &n_samples, cnp.NPY_DOUBLE, 0)
+    cdef cnp.ndarray[cnp.npy_string, ndim=1] event      = cnp.PyArray_EMPTY(1, &n_samples, cnp.NPY_STRING, 0)
+    cdef cnp.ndarray[cnp.npy_double, ndim=1] sigma_rep  = cnp.repeat(sigma,n)
+    cdef cnp.ndarray[cnp.npy_double, ndim=1] dist_rep   = cnp.repeat(dist,n)
     
+    event = list(map(getEventType,zip(y_lower,y_higher)))
+    loss  = map(_loss,zip(y_lower,y_higher,y_pred,sigma_rep,event,dist_rep))
     
-    for i in range(n_samples):
-        if y_lower==y_higher:
-            event[i] = 'uncensored'
-        elif y_lower != -float('inf') and y_higher != float('inf'):
-            event[i] = 'interval'
-        elif y_lower == -float('inf'):
-            event[i] = 'left'
-        else:
-            event[i] = 'right'
-
-
-    with nogil:
-        if dist == 'normal':
-            for i in range(n_samples):
-                if event[i] == 'uncensored':
-                    loss += math.log(1/(y_pred[i]*sigma*math.sqrt(2*3.14))*
-                                     math.exp(math.log(y_lower[i]/exp_pred[i])/(-2*sigma*sigma)))
-                elif event[i] == 'interval':
-                    loss += math.log(norm.cdf(math.log(y_higher[i]/exp_pred[i])/(sigma)) -
-                                     norm.cdf(math.log(y_lower[i]/exp_pred[i])/(sigma)))
-                elif event[i] == 'left':
-                    loss += math.log(norm.cdf(math.log(y_higher[i]/exp_pred[i])/sigma))
-                else:
-                    loss += math.log(1-norm.cdf(math.log(y_lower[i]/exp_pred[i])/sigma))
-                    
-                    
-        elif dist == 'logistic':
-            if event[i] == 'uncensored':
-                loss += math.log((1/(sigma*exp_pred[i]))*
-                            math.exp(math.log(y_lower[i]/exp_pred[i]))/(1+math.exp(math.log(y_lower[i]/exp_pred[i])))**2)
-            elif event[i] == 'interval':
-                loss += math.log(math.exp(math.log(y_higher[i]/exp_pred[i]))/(1+math.exp(math.log(y_higher[i]/exp_pred[i]))) -                             math.exp(math.log(y_lower[i]/exp_pred[i]))/(1+math.exp(math.log(y_lower[i]/exp_pred[i]))))
-                elif event[i] == 'left':
-                    loss += math.log(math.exp(math.log(y_higher[i]/exp_pred[i]))/(1+math.exp(math.log(y_higher[i]/exp_pred[i]))))
-                else:
-                    loss += math.log(1- math.exp(math.log(y_lower[i]/exp_pred[i]))/(1+math.exp(math.log(y_lower[i]/exp_pred[i]))))
-
-    return -loss
+    return loss

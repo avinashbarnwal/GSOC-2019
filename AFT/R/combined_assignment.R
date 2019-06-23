@@ -257,6 +257,7 @@ for(distribution in names(distribution.list)){
 
 data_complete <- do.call(rbind, data_complete_list)
 png("loss_grad_hess_aft.png", width = 800, height = 600)
+
 p <- ggplot(data=data_complete) +
   geom_line(aes(x=y.hat,y=parameter,colour=dist_type),
             data=data_complete,size=1) + scale_x_continuous(trans='log2') +
