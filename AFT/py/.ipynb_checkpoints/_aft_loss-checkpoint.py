@@ -62,6 +62,7 @@ def _grad_f_y(z, y, sigma, dist = 'logistic'):
     grad_f_y = -_grad_f_z(z,dist)/(sigma**2*y)
     return f_y
 
+
 def _neg_grad(y_lower, y_higher, y_pred, sigma, type = 'left', dist = 'normal'):
     
     if type=='uncensored':
@@ -79,7 +80,7 @@ def _neg_grad(y_lower, y_higher, y_pred, sigma, type = 'left', dist = 'normal'):
         z   = (math.log(y_lower)-y_pred)/sigma
         f_z = _f_z(z,dist)
         F_z = _F_z(z,dist)
-        _neg_grad = f_z/(sigma*(1-F_z))
+        _neg_grad = f_z/(sigma*max(0.00005,1-F_z))
         return _neg_grad
     if type=='interval':
         z_u           = (math.log(y_higher) - y_pred)/sigma
@@ -90,36 +91,38 @@ def _neg_grad(y_lower, y_higher, y_pred, sigma, type = 'left', dist = 'normal'):
         F_z_l         = _F_z(z_l,dist)
         _neg_grad     = -(f_z_u-f_z_l)/(sigma*(F_z_u-F_z_l))
         return _neg_grad
-    
-def _loss(y_lower, y_higher, y_pred, sigma, type = 'left', dist = 'normal'):
-    if type=='uncensored':
+
+def _loss(y_lower, y_higher, y_pred, sigma, event = 'left', dist = 'normal'):
+    if event=='uncensored':
         z    = (math.log(y_lower)-y_pred)/sigma
         f_z  = _f_z(z,dist)
-        cost = -math.log(f_z/(sigma*y_lower))
+        cost = -math.log(max(0.00005,f_z/(sigma*y_lower)))
         return cost
-    if type=='left':
+    if event=='left':
         z    = (math.log(y_higher)-y_pred)/sigma
         F_z  = _F_z(z,dist)
         cost = -math.log(F_z)
         return cost
-    if type=='right':
+    if event=='right':
         z   = (math.log(y_lower)-y_pred)/sigma
         F_z = _F_z(z,dist)
-        cost= -math.log(1-F_z)
+        #print(max(0.0005,1-F_z))
+        #print(F_z)
+        cost= -math.log(max(0.00005,1-F_z))
         return cost
-    if type=='interval':
+    if event=='interval':
         z_u   = (math.log(y_higher) - y_pred)/sigma
         z_l   = (math.log(y_lower) - y_pred)/sigma
         f_z_u = _f_z(z_u,dist)
         f_z_l = _f_z(z_l,dist)
         F_z_u = _F_z(z_u,dist)
         F_z_l = _F_z(z_l,dist)
-        cost  = -math.log(F_z_u - F_z_l)
+        cost  = -math.log(max(0.00005,F_z_u - F_z_l))
         return cost
 
-def _hessian(y_lower, y_higher, y_pred, sigma, type = 'left', dist = 'normal'):
+def _hessian(y_lower, y_higher, y_pred, sigma, event = 'left', dist = 'normal'):
     
-    if type=='uncensored':
+    if event=='uncensored':
         z        = (math.log(y_lower)-y_pred)/sigma
         f_z      = _f_z(z,dist)
         grad_f_z = _grad_f_z(z,dist)
@@ -127,7 +130,7 @@ def _hessian(y_lower, y_higher, y_pred, sigma, type = 'left', dist = 'normal'):
         hess     = -(f_z*hes_f_z - grad_f_z**2)/(sigma**2*f_z**2)
         return hess
     
-    if type=='left':
+    if event=='left':
         z        = (math.log(y_higher)-y_pred)/sigma
         f_z      = _f_z(z,dist)
         F_z      = _F_z(z,dist)
@@ -135,21 +138,21 @@ def _hessian(y_lower, y_higher, y_pred, sigma, type = 'left', dist = 'normal'):
         hess     = -(F_z*grad_f_z-f_z**2)/(sigma**2*F_z**2)
         return hess
     
-    if type=='right':
+    if event=='right':
         z        = (math.log(y_lower)-y_pred)/sigma
         f_z      = _f_z(z,dist)
         F_z      = _F_z(z,dist)
         grad_f_z = _grad_f_z(z,dist)
-        hess     = -((1-F_z)*grad_f_z+f_z**2)/(sigma**2*(1-F_z)**2)
+        hess     = -((1-F_z)*grad_f_z+f_z**2)/(sigma**2*max(0.0005,1-F_z)**2)
         return hess
     
-    if type=='interval':
+    if event=='interval':
         z_u        = (math.log(y_higher) - y_pred)/sigma
         z_l        = (math.log(y_lower) - y_pred)/sigma
-        f_z_u      = f_z(z_u,dist)
-        f_z_l      = f_z(z_l,dist)
-        F_z_u      = F_z(z_u,dist)
-        F_z_l      = F_z(z_l,dist)
+        f_z_u      = _f_z(z_u,dist)
+        f_z_l      = _f_z(z_l,dist)
+        F_z_u      = _F_z(z_u,dist)
+        F_z_l      = _F_z(z_l,dist)
         grad_f_z_u = _grad_f_z(z_u,dist)
         grad_f_z_l = _grad_f_z(z_l,dist) 
         hess       = ((F_z_u-F_z_l)*(grad_f_z_u+grad_f_z_l)-(f_z_u**2-f_z_l**2))/(sigma**2*(F_z_u-F_z_l)**2)
@@ -170,9 +173,7 @@ def negative_gradient(y_lower, y_higher, y_pred, dist, sigma):
     sigma_rep  = np.repeat(sigma,n)
     dist_rep   = np.repeat(dist,n)
     event      = list(pool.starmap(_getEventType,zip(y_lower,y_higher)))
-    #print(event)
     neg_grad   = list(pool.starmap(_neg_grad,zip(y_lower,y_higher,y_pred,sigma_rep,event,dist_rep)))
-    
     return neg_grad
 
 def loss(y_lower, y_higher, y_pred, dist, sigma):
@@ -181,12 +182,7 @@ def loss(y_lower, y_higher, y_pred, dist, sigma):
     sigma_rep  = np.repeat(sigma,n)
     dist_rep   = np.repeat(dist,n)
     event      = list(pool.starmap(_getEventType,zip(y_lower,y_higher)))
-    #loss      = list(pool.starmap(_loss,zip(y_lower,y_higher,y_pred,sigma_rep,event,dist_rep)))
-    loss       = []
-    for i in range(n):
-        print(y_lower[i],y_higher[i],y_pred[i],sigma_rep[i],event[i],dist_rep[i])
-        print('\n')
-        loss.append(_loss(y_lower[i],y_higher[i],y_pred[i],sigma_rep[i],event[i],dist_rep[i]))
+    loss       = sum(list(pool.starmap(_loss,zip(y_lower,y_higher,y_pred,sigma_rep,event,dist_rep))))
     return loss
 
 def hessian(y_lower, y_higher, y_pred, dist, sigma):
