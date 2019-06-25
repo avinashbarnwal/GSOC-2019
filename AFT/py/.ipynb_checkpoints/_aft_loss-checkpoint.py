@@ -89,36 +89,51 @@ def _neg_grad(y_lower, y_higher, y_pred, sigma, type = 'left', dist = 'normal'):
         f_z_l         = _f_z(z_l,dist)
         F_z_u         = _F_z(z_u,dist)
         F_z_l         = _F_z(z_l,dist)
-        _neg_grad     = -(f_z_u-f_z_l)/(sigma*(F_z_u-F_z_l))
+        _neg_grad     = -(f_z_u-f_z_l)/(sigma*max(0.00005,F_z_u-F_z_l))
         return _neg_grad
 
-def _loss(y_lower, y_higher, y_pred, sigma, event = 'left', dist = 'normal'):
-    if event=='uncensored':
-        z    = (math.log(y_lower)-y_pred)/sigma
-        f_z  = _f_z(z,dist)
-        cost = -math.log(max(0.00005,f_z/(sigma*y_lower)))
-        return cost
-    if event=='left':
-        z    = (math.log(y_higher)-y_pred)/sigma
-        F_z  = _F_z(z,dist)
-        cost = -math.log(F_z)
-        return cost
-    if event=='right':
-        z   = (math.log(y_lower)-y_pred)/sigma
-        F_z = _F_z(z,dist)
-        #print(max(0.0005,1-F_z))
-        #print(F_z)
-        cost= -math.log(max(0.00005,1-F_z))
-        return cost
-    if event=='interval':
-        z_u   = (math.log(y_higher) - y_pred)/sigma
-        z_l   = (math.log(y_lower) - y_pred)/sigma
-        f_z_u = _f_z(z_u,dist)
-        f_z_l = _f_z(z_l,dist)
-        F_z_u = _F_z(z_u,dist)
-        F_z_l = _F_z(z_l,dist)
-        cost  = -math.log(max(0.00005,F_z_u - F_z_l))
-        return cost
+def _loss(y_lower, y_higher, y_pred, sigma, event = 'left', dist = 'normal',metrics='logloss'):
+    
+    if metrics == 'logloss':
+        if event=='uncensored':
+            z    = (math.log(y_lower)-y_pred)/sigma
+            f_z  = _f_z(z,dist)
+            cost = -math.log(max(0.00005,f_z/(sigma*y_lower)))
+            return cost
+        if event=='left':
+            z    = (math.log(y_higher)-y_pred)/sigma
+            F_z  = _F_z(z,dist)
+            cost = -math.log(F_z)
+            return cost
+        if event=='right':
+            z   = (math.log(y_lower)-y_pred)/sigma
+            F_z = _F_z(z,dist)
+            cost= -math.log(max(0.00005,1-F_z))
+            return cost
+        if event=='interval':
+            z_u   = (math.log(y_higher) - y_pred)/sigma
+            z_l   = (math.log(y_lower) - y_pred)/sigma
+            f_z_u = _f_z(z_u,dist)
+            f_z_l = _f_z(z_l,dist)
+            F_z_u = _F_z(z_u,dist)
+            F_z_l = _F_z(z_l,dist)
+            cost  = -math.log(max(0.00005,F_z_u - F_z_l))
+            return cost
+        
+    if metrics == 'mae':
+        if event=='uncensored':
+            cost = abs(math.log(y_lower)-y_pred)
+            return cost
+        if event=='left':
+            cost = abs(math.log(y_higher)-y_pred)
+            return cost
+        if event=='right':
+            cost= abs(math.log(y_lower)-y_pred)
+            return cost
+        if event=='interval':
+            z_mid   = (math.log(y_higher) + math.log(y_lower))/2
+            cost    = abs(math.log(y_lower)-z_mid)
+            return cost
 
 def _hessian(y_lower, y_higher, y_pred, sigma, event = 'left', dist = 'normal'):
     
@@ -176,13 +191,14 @@ def negative_gradient(y_lower, y_higher, y_pred, dist, sigma):
     neg_grad   = list(pool.starmap(_neg_grad,zip(y_lower,y_higher,y_pred,sigma_rep,event,dist_rep)))
     return neg_grad
 
-def loss(y_lower, y_higher, y_pred, dist, sigma):
+def loss(y_lower, y_higher, y_pred, dist, sigma, metrics):
     
-    n          = len(y_lower)
-    sigma_rep  = np.repeat(sigma,n)
-    dist_rep   = np.repeat(dist,n)
-    event      = list(pool.starmap(_getEventType,zip(y_lower,y_higher)))
-    loss       = sum(list(pool.starmap(_loss,zip(y_lower,y_higher,y_pred,sigma_rep,event,dist_rep))))
+    n             = len(y_lower)
+    sigma_rep     = np.repeat(sigma,n)
+    dist_rep      = np.repeat(dist,n)
+    metrics_rep   = np.repeat(metrics,n)
+    event         = list(pool.starmap(_getEventType,zip(y_lower,y_higher)))
+    loss          = sum(list(pool.starmap(_loss,zip(y_lower,y_higher,y_pred,sigma_rep,event,dist_rep,metrics_rep))))
     return loss
 
 def hessian(y_lower, y_higher, y_pred, dist, sigma):
