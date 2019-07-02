@@ -2,7 +2,6 @@ set.seed(2)
 library(ggplot2)
 setwd('/Users/avinashbarnwal/Desktop/Personal/GSOC-2019/AFT/R')
 
-
 z <- function(t.obs=t.obs,y.hat=y.hat,sigma=sigma){
   z = (log(t.obs)-log(y.hat))/sigma
   return(z)
@@ -211,14 +210,13 @@ hessian <- function(type="left",t.lower=NULL,t.higher=NULL,sigma=1,y.hat=1,dist=
     F_z_l         = F_z(z_l,dist)
     grad_f_z_u    = grad_f_z(z_u,dist)
     grad_f_z_l    = grad_f_z(z_l,dist) 
-    hess          = -((F_z_u-F_z_l)*(grad_f_z_u+grad_f_z_l)-(f_z_u**2+f_z_l**2))/(sigma**2*(F_z_u-F_z_l)**2)
+    hess          = -((F_z_u-F_z_l)*(grad_f_z_u-grad_f_z_l)-(f_z_u**2+f_z_l**2))/(sigma**2*(F_z_u-F_z_l)**2)
     data_type     = rep("Interval",n.points)
     parameter_type = rep('Hessian',n.points)
     data          = data.frame(y.hat = y.hat,parameter=hess,parameter_type = parameter_type,data_type = data_type,dist_type = dist_type,t.lower.col=t.lower.col,t.higher.col=t.higher.col)
     return(data)
   }
 }
-
 
 n.points = 20
 x.lim    = 15
