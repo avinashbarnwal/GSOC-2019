@@ -170,7 +170,7 @@ def _hessian(y_lower, y_higher, y_pred, sigma, event = 'left', dist = 'normal'):
         F_z_l      = _F_z(z_l,dist)
         grad_f_z_u = _grad_f_z(z_u,dist)
         grad_f_z_l = _grad_f_z(z_l,dist) 
-        hess       = ((F_z_u-F_z_l)*(grad_f_z_u+grad_f_z_l)-(f_z_u**2-f_z_l**2))/(sigma**2*(F_z_u-F_z_l)**2)
+        hess       = (-(F_z_u-F_z_l)*(grad_f_z_u-grad_f_z_l)+(f_z_u-f_z_l)**2)/(sigma**2*(F_z_u-F_z_l)**2)
         return hess
     
 
