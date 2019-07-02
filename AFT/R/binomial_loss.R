@@ -88,7 +88,7 @@ data_complete = do.call(rbind, data_complete_list)
 #grid.arrange(p1, p2, p3, nrow = 1)
 
 
-png("binomial.png", width = 800, height = 600)
+png("binomial_loss.png", width = 800, height = 600)
 p <- ggplot(data=data_complete) +
   geom_line(aes(x=y.hat,y=cost,colour=data_type),
             data=data_complete,size=1) +
