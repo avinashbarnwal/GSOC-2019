@@ -16,7 +16,7 @@ neg_gradient   <- function(n.obs = 100, y.obs = 0.5, y.hat=1){
 }
 
 hessian   <- function(n.obs = 100, y.obs = 0.5, y.hat=1){
-  hessian <- n.obs*(exp(y.hat)/(1+exp(y.hat)))
+  hessian <- n.obs*(exp(y.hat)/(1+exp(y.hat))**2)
   return(hessian)
 }
 
