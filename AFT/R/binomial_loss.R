@@ -25,31 +25,43 @@ binomial_properties <- function(n.obs = 100, y.obs = 50, y.hat=1,type="loss"){
     loss         = loss(n.obs,y.obs,y.hat)
     n.points     = length(y.hat)
     type_series  = rep(type,n.points)
-    data         = data.frame(y.hat = y.hat, cost=loss, data_type = type_series)
+    y.obs.tag    = paste('y.obs=',y.obs,sep="")
+    y.obs.col    = rep(y.obs.tag,n.points)
+    data         = data.frame(y.hat = y.hat, cost=loss, data_type = type_series,y_obs = y.obs.col)
     return(data)
   }
   if(type=="neg_gradient"){
     neg_gradient = neg_gradient(n.obs,y.obs,y.hat)
     n.points     = length(y.hat)
     type_series  = rep(type,n.points)
-    data         = data.frame(y.hat = y.hat, cost=neg_gradient, data_type = type_series)
+    y.obs.tag    = paste('y.obs=',y.obs,sep="")
+    y.obs.col    = rep(y.obs.tag,n.points)
+    data         = data.frame(y.hat = y.hat, cost=neg_gradient, data_type = type_series,y_obs = y.obs.col)
     return(data)
   }
   if(type=="hessian"){
     hessian      = hessian(n.obs,y.obs,y.hat)
     n.points     = length(y.hat)
     type_series  = rep(type,n.points)
-    data         = data.frame(y.hat = y.hat, cost=hessian, data_type = type_series)
+    y.obs.tag    = paste('y.obs=',y.obs,sep="")
+    y.obs.col    = rep(y.obs.tag,n.points)
+    data         = data.frame(y.hat = y.hat, cost=hessian, data_type = type_series,y_obs = y.obs.col)
     return(data)
   }
 }
 
-n.points  = 20
+n.points  = 200
 x.lim     = 50
 
-distribution.list  = list(loss         = binomial_properties(type="loss", n.obs = 100, y.obs = 50, y.hat=seq(-50,x.lim,length=n.points)),
-                          neg_gradient = binomial_properties(type="neg_gradient", n.obs = 100, y.obs = 50, y.hat=seq(-50,x.lim,length=n.points)),
-                          hessian      = binomial_properties(type="hessian", n.obs = 100, y.obs = 50, y.hat=seq(-50,x.lim,length=n.points))
+distribution.list  = list(loss_50            = binomial_properties(type="loss", n.obs = 100, y.obs = 50, y.hat=seq(-50,x.lim,length=n.points)),
+                          loss_0             = binomial_properties(type="loss", n.obs = 100, y.obs  = 0, y.hat=seq(-50,x.lim,length=n.points)),
+                          loss_20            = binomial_properties(type="loss", n.obs = 100, y.obs = 20, y.hat=seq(-50,x.lim,length=n.points)),
+                          neg_gradient_50    = binomial_properties(type="neg_gradient", n.obs = 100, y.obs = 50, y.hat=seq(-50,x.lim,length=n.points)),
+                          neg_gradient_0     = binomial_properties(type="neg_gradient", n.obs = 100, y.obs = 0, y.hat=seq(-50,x.lim,length=n.points)),
+                          neg_gradient_20    = binomial_properties(type="neg_gradient", n.obs = 100, y.obs = 20, y.hat=seq(-50,x.lim,length=n.points)),
+                          hessian_50         = binomial_properties(type="hessian", n.obs = 100, y.obs = 50, y.hat=seq(-50,x.lim,length=n.points)),
+                          hessian_0          = binomial_properties(type="hessian", n.obs = 100, y.obs = 0, y.hat=seq(-50,x.lim,length=n.points)),
+                          hessian_20         = binomial_properties(type="hessian", n.obs = 100, y.obs = 20, y.hat=seq(-50,x.lim,length=n.points))
                           )
 
 data_complete_list = list()
@@ -59,14 +71,12 @@ for(distribution in names(distribution.list)){
 }
 
 data_complete = do.call(rbind, data_complete_list)
-
-
 png("binomial_loss.png", width = 800, height = 600)
-p <- ggplot(data=data_complete) +
-  geom_line(aes(x=y.hat,y=cost,colour=data_type),
-            data=data_complete,size=1) +
-  ylab("loss function L_i(y_pred)")    +
-  xlab("predicted survival time y_pred in days") + facet_grid(data_type ~ .,scales="free") + 
-  scale_color_discrete(name = "Distribution")
+p = ggplot(data=data_complete) +
+    geom_line(aes(x=y.hat,y=cost),
+              data=data_complete,size=1) +
+    ylab("loss function L_i(y_pred)")    +
+    xlab("predicted survival time y_pred in days") + facet_grid(data_type ~ y_obs,scales="free") + 
+    scale_color_discrete(name = "Distribution")
 p
 dev.off()
