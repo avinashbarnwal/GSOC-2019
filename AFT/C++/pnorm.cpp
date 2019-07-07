@@ -10,7 +10,6 @@ int main()
    double sd   = 1;
    double res;
    res = pnorm(x,mu,sd);
-   cout << res << endl;
    return 0;
 
 }
