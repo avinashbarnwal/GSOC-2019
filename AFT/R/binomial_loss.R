@@ -75,8 +75,8 @@ png("binomial_loss.png", width = 800, height = 600)
 p = ggplot(data=data_complete) +
     geom_line(aes(x=y.hat,y=cost),
               data=data_complete,size=1) +
-    ylab("loss function L_i(y_pred)")    +
-    xlab("predicted survival time y_pred in days") + facet_grid(data_type ~ y_obs,scales="free") + 
+    ylab("Metrics performance")    +
+    xlab("eta") + facet_grid(data_type ~ y_obs,scales="free") + 
     scale_color_discrete(name = "Distribution")
 p
 dev.off()
