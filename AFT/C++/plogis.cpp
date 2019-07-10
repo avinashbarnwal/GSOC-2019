@@ -2,7 +2,7 @@
 #include <cmath>
 #define PI 3.14159
 
-double plogis(double x, double mu , double sd)
+extern "C" double plogis(double x, double mu , double sd)
 {
 	double cdf;
     cdf = std::exp((x-mu)/sd)/(1+std::exp((x-mu)/sd));

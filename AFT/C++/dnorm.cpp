@@ -2,7 +2,7 @@
 #include <cmath>
 #define PI 3.14159
 
-double dnorm(double x, double mu , double sd)
+extern "C" double dnorm(double x, double mu , double sd)
 {
 	double pdf;
     pdf = (std::exp(-std::pow((x-mu)/(std::sqrt(2)*sd),2)))/std::sqrt(2*PI*std::pow(sd,2));
