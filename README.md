@@ -10,3 +10,7 @@ Following is the sequence of files:-
 - xgb_DoBoost.cc       - It does boosting.
 - xgb_gbtree_update.cc - It updates boosting cycle and updation of trees.
 - xgb_grow_colmaker.cc - 
+
+
+#Makefile -
+- https://opensource.com/article/18/8/what-how-makefile
