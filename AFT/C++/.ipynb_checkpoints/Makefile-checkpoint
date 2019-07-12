@@ -1,3 +1,4 @@
+
 OS := $(shell uname)
 ifeq ($(OS), Darwin)
 	OUTPUT_LIB = distlib.dylib
@@ -7,5 +8,5 @@ endif
 
 all: $(OUTPUT_LIB)
 
-$(OUTPUT_LIB): dlogis.cpp dnorm.cpp plogis.cpp pnorm.cpp grad_norm.cpp
+$(OUTPUT_LIB): dlogis.cpp dnorm.cpp plogis.cpp pnorm.cpp
 	$(CXX) -O3 -shared -o $@ $^

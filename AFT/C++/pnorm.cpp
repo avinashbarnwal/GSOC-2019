@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cmath>
-#define PI 3.14159
+#define  PI 3.14159
+#include "aft.h"
+
 
 extern "C" double pnorm(double x, double mu , double sd)
 {
