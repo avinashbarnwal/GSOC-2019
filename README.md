@@ -16,6 +16,9 @@ Following is the sequence of files:-
 - xgb_CalcWeight.cc    - It calculates weight of each tree node.
 - xgb_PredValue.cc     - It calculates the prediction for new data point.
 
+**UpdateOneIter** -> **Gradient and Hessian** -> **Loss** -> **DoBoost** -> **Update Boosting Cycle** -> **Update tree depth by depth** -> **Tree Pruning** -> **Calculate Gain** -> **Calculate weight of node**  
+
+
 
 #Makefile -
 - https://opensource.com/article/18/8/what-how-makefile
