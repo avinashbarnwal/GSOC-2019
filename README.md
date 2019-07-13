@@ -9,7 +9,12 @@ Following is the sequence of files:-
 - xgboost_lr_obj.cc    - It has objective functions methods.
 - xgb_DoBoost.cc       - It does boosting.
 - xgb_gbtree_update.cc - It updates boosting cycle and updation of trees.
-- xgb_grow_colmaker.cc - 
+- xgb_grow_colmaker.cc - Each tree is updated by the builder depth by depth.
+- xgb_updater_prune.cc - It prunes tree leaves recursively.
+- xgboost_loss_chg.cc  - It calculates the change in loss.
+- xgb_CalcGain.cc      - It calculates the gain for each tree node.
+- xgb_CalcWeight.cc    - It calculates weight of each tree node.
+- xgb_PredValue.cc     - It calculates the prediction for new data point.
 
 
 #Makefile -
