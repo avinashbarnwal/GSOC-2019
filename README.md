@@ -18,6 +18,8 @@ Following is the sequence of files:-
 
 **UpdateOneIter** -> **Gradient and Hessian** -> **Loss** -> **DoBoost** -> **Update Boosting Cycle** -> **Update tree depth by depth** -> **Tree Pruning** -> **Calculate Gain** -> **Calculate weight of node**  
 
+- Link - https://towardsdatascience.com/boosting-algorithm-xgboost-4d9ec0207d
+
 
 
 # Makefile -
