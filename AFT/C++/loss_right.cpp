@@ -17,6 +17,6 @@ extern "C" double loss_right(double y_lower,double y_higher,double y_pred,double
   else{
   	cdf = plogis(z,0,1);
   }
-  cost = -std::log(std::max(0.00005,1-cdf));  
+  cost = -std::log(1-cdf);
   return cost;
 }

@@ -22,6 +22,6 @@ extern "C" double loss_interval(double y_lower,double y_higher,double y_pred,dou
   	cdf_u = plogis(z_u,0,1);
     cdf_l = plogis(z_l,0,1);
   }
-  cost = -std::log(std::max(0.00005,cdf_u - cdf_l)); 
+  cost = -std::log(cdf_u - cdf_l); 
   return cost;
 }
