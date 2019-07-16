@@ -34,6 +34,6 @@ extern "C" double hessian_interval(double y_lower,double y_higher,double y_pred,
     grad_u  = grad_logis(z_u,0,1);
     grad_l  = grad_logis(z_l,0,1);
   }
-  hess = -((cdf_u-cdf_l)*(grad_u-grad_l)-std::pow((pdf_u-pdf_l),2))/(std::pow(sigma,2)*std::pow((cdf_u-cdf_l),2)); 
+  hess = -((cdf_u-cdf_l)*(grad_u-grad_l)-std::pow(pdf_u-pdf_l,2))/(std::pow(sigma,2)*std::pow(cdf_u-cdf_l,2)); 
   return hess;
 }
