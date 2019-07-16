@@ -4,13 +4,14 @@
 #define PI 3.14159
 #include "aft.h"
 
-extern "C" double loss_uncensored(double y_lower,double y_higher,double y_pred,double sigma,std::string dist)
+extern "C" double loss_right(double y_lower,double y_higher,double y_pred,double sigma,char* dist)
 {
   double z;
   double cdf;
-  double cost;	
-  z    = (std::log(y_higher)-y_pred)/sigma;
-  if(dist=="normal"){
+  double cost;
+  char* given_dist =  "normal";	
+  z    = (std::log(y_lower)-y_pred)/sigma;
+  if(strcmp(dist, given_dist) == 0){
   	cdf = pnorm(z,0,1);
   }
   else{

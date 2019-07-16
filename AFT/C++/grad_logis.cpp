@@ -4,7 +4,7 @@
 #define  PI 3.14159
 #include "aft.h"
 
-extern "C" double grad_norm(double x, double mu, double sd)
+extern "C" double grad_logis(double x, double mu, double sd)
 {
 	double pdf;
 	double z;
