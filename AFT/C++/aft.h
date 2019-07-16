@@ -10,7 +10,11 @@ extern "C" double loss_uncensored(double y_lower,double y_higher,double y_pred,d
 extern "C" double loss_left(double y_lower,double y_higher,double y_pred,double sigma,char* dist);
 extern "C" double loss_right(double y_lower,double y_higher,double y_pred,double sigma,char* dist);
 extern "C" double loss_interval(double y_lower,double y_higher,double y_pred,double sigma,char* dist);
-extern "C" double neg_grad_uncensored(double y_lower,double y_higher,double y_pred,double sigma,std::string dist);
-extern "C" double neg_grad_left(double y_lower,double y_higher,double y_pred,double sigma,std::string dist);
-extern "C" double neg_grad_right(double y_lower,double y_higher,double y_pred,double sigma,std::string dist);
-extern "C" double neg_grad_interval(double y_lower,double y_higher,double y_pred,double sigma,std::string dist);
+extern "C" double neg_grad_uncensored(double y_lower,double y_higher,double y_pred,double sigma,char* dist);
+extern "C" double neg_grad_left(double y_lower,double y_higher,double y_pred,double sigma,char* dist);
+extern "C" double neg_grad_right(double y_lower,double y_higher,double y_pred,double sigma,char* dist);
+extern "C" double neg_grad_interval(double y_lower,double y_higher,double y_pred,double sigma,char* dist);
+extern "C" double hessian_uncensored(double y_lower,double y_higher,double y_pred,double sigma,char* dist);
+extern "C" double hessian_left(double y_lower,double y_higher,double y_pred,double sigma,char* dist);
+extern "C" double hessian_right(double y_lower,double y_higher,double y_pred,double sigma,char* dist);
+extern "C" double hessian_interval(double y_lower,double y_higher,double y_pred,double sigma,char* dist);
