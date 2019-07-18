@@ -21,7 +21,7 @@ extern "C" double neg_grad_right(double y_lower,double y_higher,double y_pred,do
   		cdf  = plogis(z,0,1); 
   }
 
-	neg_grad = pdf/(sigma*std::max(0.000005,1-cdf));
+	neg_grad = pdf/(sigma*(1-cdf));
 
   return neg_grad;
 }

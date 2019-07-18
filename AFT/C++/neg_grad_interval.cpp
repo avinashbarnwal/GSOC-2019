@@ -27,7 +27,7 @@ extern "C" double neg_grad_interval(double y_lower,double y_higher,double y_pred
       cdf_u  = plogis(z_u,0,1); 
   		cdf_l  = plogis(z_l,0,1); 
   }
-  neg_grad  = -(pdf_u-pdf_l)/(sigma*std::max(0.00005,cdf_u-cdf_l));
+  neg_grad  = -(pdf_u-pdf_l)/(sigma*(cdf_u-cdf_l));
 
   return neg_grad;
 }
