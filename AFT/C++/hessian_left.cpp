@@ -19,7 +19,7 @@ extern "C" double hessian_left(double y_lower,double y_higher,double y_pred,doub
   }
   else{
   		pdf  = dlogis(z,0,1);
-      cdf  = dlogis(z,0,1);
+      cdf  = plogis(z,0,1);
   		grad = grad_logis(z,0,1);
   }
 	hess = -(cdf*grad - std::pow(pdf,2))/(std::pow(sigma,2)*std::pow(cdf,2));
