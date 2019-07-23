@@ -467,10 +467,9 @@ class BaseGradientBoosting():
             
             sample_mask = _random_sample_mask(n_samples, n_inbag, random_state)
             self.train_score_[0] = loss_(y_lower[sample_mask],y_higher[sample_mask],pred[sample_mask],self.dist,self.sigma,self.metrics,sample_weight[sample_mask])
-            
         else:
-            
             self.train_score_[0] = loss_(y_lower,y_higher,pred,self.dist,self.sigma,self.metrics,sample_weight)
+            
         self.valid_score_[0] = loss_(y_lower_val,y_higher_val,pred_val,self.dist,self.sigma,self.metrics,sample_weight_val)
 
         # perform boosting iterations
@@ -541,6 +540,9 @@ class BaseGradientBoosting():
             self._init_state()
         else:
             sample_weight_val = np.ones(X_val.shape[0], dtype=np.float32)
+            X_val             = check_array(X_val, dtype=DTYPE, order="C",  accept_sparse='csr')
+            self._check_params()
+            self._init_state()
 
         # fit initial model - FIXME make sample_weight optional
         #For Binomial       - init_ = LogOddsEstimator
@@ -560,6 +562,7 @@ class BaseGradientBoosting():
         
         n_stages = self._fit_stages(X, y_lower,y_higher, sample_weight, self.random_state,
                                     X_val, y_lower_val,y_higher_val, sample_weight_val,begin_at_stage)
+        
         # change shape of arrays after fit (early-stopping or additional ests)
         self.n_estimators_ = n_stages
         

@@ -14,6 +14,10 @@ f_z <- function(z=z,dist='logistic'){
   if(dist=='normal'){
     f_z = dnorm(z)
   }
+  if(dist=='weibull'){
+    w   = exp(1)**z
+    f_z = w*exp(1)**(-w)
+  }
   return(f_z)
 }
 
@@ -24,6 +28,10 @@ grad_f_z <- function(z=z,dist='logistic'){
   }
   if(dist == 'normal'){
     grad_f_z = -z*f_z
+  }
+  if(dist == 'weibull'){
+    w   = exp(1)**z
+    grad_f_z = (1-w)*f_z
   }
   return(grad_f_z)
 }
@@ -37,6 +45,10 @@ hes_f_z <- function(z=z,dist='logistic'){
     w       = exp(1)**z
     hes_f_z = f_z*(w**2-4*w+1)/(1+w)**2 
   }
+  if(dist=='weibull'){
+    w       = exp(1)**z
+    hes_f_z = (w**2-3*w+1)*f_z
+  }
   return(hes_f_z)
 }
 
@@ -46,6 +58,10 @@ F_z <- function(z,dist='logistic'){
   }
   if(dist=='normal'){
     F_z = pnorm(z)
+  }
+  if(dist=='weibull'){
+    w   = exp(1)**z
+    F_z = 1-exp(1)**(-w)
   }
   return(F_z)
 }
@@ -243,7 +259,19 @@ distribution.list = list(gaussian=list(uncensored_l=loss(type="uncensored",t.low
                                        uncensored_h=hessian(type="uncensored",t.lower=100,t.higher=100,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)),dist='logistic'),
                                        left_h=hessian(type="left",t.lower=-Inf,t.higher=20,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)),dist='logistic'),
                                        right_h=hessian(type="right",t.lower=60,t.higher=Inf,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)),dist='logistic'),
-                                       interval_h=hessian(type="interval",t.lower=16,t.higher=200,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)),dist='logistic')))
+                                       interval_h=hessian(type="interval",t.lower=16,t.higher=200,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)),dist='logistic')),
+                         weibull=list(uncensored_l=loss(type="uncensored",t.lower=100,t.higher=100,sigma=sqrt(pi^2/6),y.hat=2**(seq(1,x.lim,length=n.points)),dist='weibull'),
+                                      left_l=loss(type="left",t.lower=-Inf,t.higher=20,sigma=sqrt(pi^2/6),y.hat=2**(seq(1,x.lim,length=n.points)),dist='weibull'),
+                                      right_l=loss(type="right",t.lower=60,t.higher=Inf,sigma=sqrt(pi^2/6),y.hat=2**(seq(1,x.lim,length=n.points)),dist='weibull'),
+                                      interval_l=loss(type="interval",t.lower=16,t.higher=200,sigma=sqrt(pi^2/6),y.hat=2**(seq(1,x.lim,length=n.points)),dist='weibull'),
+                                      uncensored_g=neg_grad(type="uncensored",t.lower=100,t.higher=100,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)),dist='weibull'),
+                                      left_g=neg_grad(type="left",t.lower=-Inf,t.higher=20,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)),dist='weibull'),
+                                      right_g=neg_grad(type="right",t.lower=60,t.higher=Inf,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)),dist='weibull'),
+                                      interval_g=neg_grad(type="interval",t.lower=16,t.higher=200,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)),dist='weibull'),
+                                      uncensored_h=hessian(type="uncensored",t.lower=100,t.higher=100,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)),dist='weibull'),
+                                      left_h=hessian(type="left",t.lower=-Inf,t.higher=20,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)),dist='weibull'),
+                                      right_h=hessian(type="right",t.lower=60,t.higher=Inf,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)),dist='weibull'),
+                                      interval_h=hessian(type="interval",t.lower=16,t.higher=200,sigma=1,y.hat=2**(seq(1,x.lim,length=n.points)),dist='weibull')))
 
 data_complete_list <- list()
 
