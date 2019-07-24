@@ -6,7 +6,7 @@ setwd('/Users/avinashbarnwal/Desktop/Personal/GSOC-2019/AFT/R')
 set.seed(2)
 
 loss   <- function(n.obs = 100, y.obs = 50, y.hat=1){
-  loss <- -y.obs*y.hat + n.obs*log(1+exp(y.hat)) - log(choose(n.obs,y.obs))
+  loss <- y.obs*log(1+exp(-y.hat)) + (n.obs-y.obs)*log(1+exp(y.hat))
   return(loss)
 }
 

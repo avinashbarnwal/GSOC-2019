@@ -1,4 +1,5 @@
 OS := $(shell uname)
+
 ifeq ($(OS), Darwin)
 	OUTPUT_LIB = distlib.dylib
 else
@@ -7,5 +8,5 @@ endif
 
 all: $(OUTPUT_LIB)
 
-$(OUTPUT_LIB): neg_grad.cpp hessian.cpp loss.cpp combination.cpp factorial.cpp
+$(OUTPUT_LIB): neg_grad.cpp hessian.cpp loss.cpp
 	$(CXX) -O3 -shared -o $@ $^
