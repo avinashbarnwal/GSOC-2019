@@ -30,7 +30,7 @@ Following is the sequence of files:-
 
 
 # Changes in the files to include AFT in Xgboost  
-- **src/c_api/c_api.cc  **
+- **src/c_api/c_api.cc**  
 Code Below  
   vec = &info.weights_.HostVector();  
   } else if (!std::strcmp(field, "base_margin")) {  
