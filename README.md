@@ -25,13 +25,13 @@ Following is the sequence of files:-
 # Makefile -
 - https://opensource.com/article/18/8/what-how-makefile
 
-# How to wrap the C++ code in Python
-- Using shared library and python library ctypes.
+# How to wrap the C++ code in Python  
+- Using shared library and python library ctypes.  
 
 
-# Changes in the files to include AFT in Xgboost
-- src/c_api/c_api.cc
-Code Below
+# Changes in the files to include AFT in Xgboost  
+- src/c_api/c_api.cc  
+Code Below  
     vec = &info.weights_.HostVector();
   } else if (!std::strcmp(field, "base_margin")) {
     vec = &info.base_margin_.HostVector();
@@ -42,9 +42,9 @@ Code Below
   } else {
     LOG(FATAL) << "Unknown float field name " << field;
   }
-  
-  - src/data/data.cc
-  Code Below
+    
+  - src/data/data.cc  
+  Code Below  
       labels.resize(num);
     DISPATCH_CONST_PTR(dtype, dptr, cast_dptr,
                        std::copy(cast_dptr, cast_dptr + num, labels.begin()));
