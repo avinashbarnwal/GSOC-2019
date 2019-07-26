@@ -42,9 +42,8 @@ Code Below
   } else {  
     LOG(FATAL) << "Unknown float field name " << field;  
   }  
-    
-  - src/data/data.cc  
-  Code Below  
+- src/data/data.cc  
+ Code Below  
     labels.resize(num);  
     DISPATCH_CONST_PTR(dtype, dptr, cast_dptr,  
                        std::copy(cast_dptr, cast_dptr + num, labels.begin()));  
