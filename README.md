@@ -60,7 +60,7 @@ Code Below
   } else if (!std::strcmp(key, "weight")) {  
     auto& weights = weights_.HostVector();  
     weights.resize(num);  
- - include/xgboost/data.h  
+ - **include/xgboost/data.h**    
   uint64_t num_nonzero_{0};  
   /*! \brief label of each instance */  
   HostDeviceVector<bst_float> labels_;  
