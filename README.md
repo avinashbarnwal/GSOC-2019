@@ -42,7 +42,7 @@ Code Below
   } else {  
     LOG(FATAL) << "Unknown float field name " << field;  
   }  
-- src/data/data.cc  
+- **src/data/data.cc**  
  Code Below  
     labels.resize(num);  
     DISPATCH_CONST_PTR(dtype, dptr, cast_dptr,  
@@ -88,7 +88,7 @@ Code Below
   MetaInfo()  = default;  
   /*!  
   
- - src/data/data.cc
+ - **src/data/data.cc**  
  @@ -42,6 +42,8 @@ void MetaInfo::SaveBinary(dmlc::Stream *fo) const {  
   fo->Write(labels_.HostVector());  
   fo->Write(group_ptr_);  
