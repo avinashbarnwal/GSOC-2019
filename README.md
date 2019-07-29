@@ -117,3 +117,11 @@ Code Below
   CHECK(fi->Read(&weights_.HostVector())) << "MetaInfo: invalid format";  
   CHECK(fi->Read(&root_index_)) << "MetaInfo: invalid format";  
   CHECK(fi->Read(&base_margin_.HostVector())) << "MetaInfo: invalid format";  
+  
+  
+  Things to ask?
+  
+  Q. What is the use of DMLC_REGISTRY_FILE_TAG(survival_metric)?
+  Ans:- 
+  
+  
