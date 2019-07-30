@@ -104,6 +104,10 @@ void SparsePageSource::BeforeFirst() {
   }
 }
 
+SparsePage& SparsePageSource::Value() {
+  return *page_;
+}
+
 const SparsePage& SparsePageSource::Value() const {
   return *page_;
 }
@@ -126,7 +130,8 @@ bool SparsePageSource::CacheExist(const std::string& cache_info,
 }
 
 void SparsePageSource::CreateRowPage(dmlc::Parser<uint32_t>* src,
-                                     const std::string& cache_info) {
+                                     const std::string& cache_info,
+                                     const size_t page_size) {
   const std::string page_type = ".row.page";
   std::vector<std::string> cache_shards = GetCacheShards(cache_info);
   CHECK_NE(cache_shards.size(), 0U);
@@ -183,7 +188,7 @@ void SparsePageSource::CreateRowPage(dmlc::Parser<uint32_t>* src,
                                 static_cast<uint64_t>(index + 1));
       }
       page->Push(batch);
-      if (page->MemCostBytes() >= kPageSize) {
+      if (page->MemCostBytes() >= page_size) {
         bytes_write += page->MemCostBytes();
         writer.PushWrite(std::move(page));
         writer.Alloc(&page);
@@ -216,13 +221,14 @@ void SparsePageSource::CreateRowPage(dmlc::Parser<uint32_t>* src,
     CHECK(info.qids_.empty() || info.qids_.size() == info.num_row_);
     info.SaveBinary(fo.get());
   }
-  LOG(CONSOLE) << "SparsePageSource::CreateRowPage Finished writing to "
-             << name_info;
+  LOG(INFO) << "SparsePageSource::CreateRowPage Finished writing to "
+            << name_info;
 }
 
 void SparsePageSource::CreatePageFromDMatrix(DMatrix* src,
                                              const std::string& cache_info,
-                                             const std::string& page_type) {
+                                             const std::string& page_type,
+                                             const size_t page_size) {
   std::vector<std::string> cache_shards = GetCacheShards(cache_info);
   CHECK_NE(cache_shards.size(), 0U);
   // read in the info files.
@@ -245,7 +251,7 @@ void SparsePageSource::CreatePageFromDMatrix(DMatrix* src,
       if (page_type == ".row.page") {
         page->Push(batch);
       } else if (page_type == ".col.page") {
-        page->Push(batch.GetTranspose(src->Info().num_col_));
+        page->PushCSC(batch.GetTranspose(src->Info().num_col_));
       } else if (page_type == ".sorted.col.page") {
         SparsePage tmp = batch.GetTranspose(src->Info().num_col_);
         page->PushCSC(tmp);
@@ -254,15 +260,15 @@ void SparsePageSource::CreatePageFromDMatrix(DMatrix* src,
         LOG(FATAL) << "Unknown page type: " << page_type;
       }
 
-      if (page->MemCostBytes() >= kPageSize) {
+      if (page->MemCostBytes() >= page_size) {
         bytes_write += page->MemCostBytes();
         writer.PushWrite(std::move(page));
         writer.Alloc(&page);
         page->Clear();
         double tdiff = dmlc::GetTime() - tstart;
-        LOG(CONSOLE) << "Writing to " << cache_info << " in "
-                     << ((bytes_write >> 20UL) / tdiff) << " MB/s, "
-                     << (bytes_write >> 20UL) << " written";
+        LOG(INFO) << "Writing to " << cache_info << " in "
+                  << ((bytes_write >> 20UL) / tdiff) << " MB/s, "
+                  << (bytes_write >> 20UL) << " written";
       }
     }
     if (page->data.Size() != 0) {
@@ -275,7 +281,7 @@ void SparsePageSource::CreatePageFromDMatrix(DMatrix* src,
     fo->Write(&tmagic, sizeof(tmagic));
     info.SaveBinary(fo.get());
   }
-  LOG(CONSOLE) << "SparsePageSource: Finished writing to " << name_info;
+  LOG(INFO) << "SparsePageSource: Finished writing to " << name_info;
 }
 
 void SparsePageSource::CreateRowPage(DMatrix* src,

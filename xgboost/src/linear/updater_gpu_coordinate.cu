@@ -81,6 +81,10 @@ class DeviceShard {
     RescaleIndices(device_id_, ridx_begin_, data_);
   }
 
+  ~DeviceShard() {
+    dh::safe_cuda(cudaSetDevice(device_id_));
+  }
+
   bool IsEmpty() {
     return (ridx_end_ - ridx_begin_) == 0;
   }
@@ -153,8 +157,7 @@ class DeviceShard {
 class GPUCoordinateUpdater : public LinearUpdater {
  public:
   // set training parameter
-  void Init(
-      const std::vector<std::pair<std::string, std::string>> &args) override {
+  void Configure(Args const& args) override {
     tparam_.InitAllowUnknown(args);
     selector_.reset(FeatureSelector::Create(tparam_.feature_selector));
     monitor_.Init("GPUCoordinateUpdater");
@@ -164,7 +167,7 @@ class GPUCoordinateUpdater : public LinearUpdater {
                       const gbm::GBLinearModelParam &model_param) {
     if (!shards_.empty()) return;
 
-    dist_ = GPUDistribution::Block(GPUSet::All(tparam_.gpu_id, tparam_.n_gpus,
+    dist_ = GPUDistribution::Block(GPUSet::All(learner_param_->gpu_id, learner_param_->n_gpus,
                                                p_fmat->Info().num_row_));
     auto devices = dist_.Devices();
 

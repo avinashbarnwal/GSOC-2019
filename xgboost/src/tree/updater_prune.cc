@@ -22,12 +22,16 @@ DMLC_REGISTRY_FILE_TAG(updater_prune);
 class TreePruner: public TreeUpdater {
  public:
   TreePruner() {
-    syncher_.reset(TreeUpdater::Create("sync"));
+    syncher_.reset(TreeUpdater::Create("sync", tparam_));
   }
+  char const* Name() const override {
+    return "prune";
+  }
+
   // set training parameter
-  void Init(const std::vector<std::pair<std::string, std::string> >& args) override {
+  void Configure(const Args& args) override {
     param_.InitAllowUnknown(args);
-    syncher_->Init(args);
+    syncher_->Configure(args);
   }
   // update the tree, do pruning
   void Update(HostDeviceVector<GradientPair> *gpair,

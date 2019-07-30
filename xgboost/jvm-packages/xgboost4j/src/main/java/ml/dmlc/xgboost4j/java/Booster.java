@@ -117,6 +117,60 @@ public class Booster implements Serializable, KryoSerializable {
   }
 
   /**
+   * Get attributes stored in the Booster as a Map.
+   *
+   * @return A map contain attribute pairs.
+   * @throws XGBoostError native error
+   */
+  public final Map<String, String> getAttrs() throws XGBoostError {
+    String[][] attrNames = new String[1][];
+    XGBoostJNI.checkCall(XGBoostJNI.XGBoosterGetAttrNames(handle, attrNames));
+    Map<String, String> attrMap = new HashMap<>();
+    for (String name: attrNames[0]) {
+      attrMap.put(name, this.getAttr(name));
+    }
+    return attrMap;
+  }
+
+  /**
+   * Get attribute from the Booster.
+   *
+   * @param key   attribute key
+   * @return attribute value
+   * @throws XGBoostError native error
+   */
+  public final String getAttr(String key) throws XGBoostError {
+    String[] attrValue = new String[1];
+    XGBoostJNI.checkCall(XGBoostJNI.XGBoosterGetAttr(handle, key, attrValue));
+    return attrValue[0];
+  }
+
+  /**
+   * Set attribute to the Booster.
+   *
+   * @param key   attribute key
+   * @param value attribute value
+   * @throws XGBoostError native error
+   */
+  public final void setAttr(String key, String value) throws XGBoostError {
+    XGBoostJNI.checkCall(XGBoostJNI.XGBoosterSetAttr(handle, key, value));
+  }
+
+  /**
+   * Set attributes to the Booster.
+   *
+   * @param attrs attributes key-value map
+   * @throws XGBoostError native error
+   */
+  public void setAttrs(Map<String, String> attrs) throws XGBoostError {
+    if (attrs != null) {
+      for (Map.Entry<String, String> entry : attrs.entrySet()) {
+        setAttr(entry.getKey(), entry.getValue());
+      }
+    }
+  }
+
+  /**
    * Update the booster for one iteration.
    *
    * @param dtrain training data
@@ -507,7 +561,7 @@ public class Booster implements Serializable, KryoSerializable {
     }
     Map<String, Double> importanceMap = new HashMap<>();
     Map<String, Double> weightMap = new HashMap<>();
-    if (importanceType == FeatureImportanceType.WEIGHT) {
+    if (importanceType.equals(FeatureImportanceType.WEIGHT)) {
       Map<String, Integer> importanceWeights = getFeatureWeightsFromModel(modelInfos);
       for (String feature: importanceWeights.keySet()) {
         importanceMap.put(feature, new Double(importanceWeights.get(feature)));
@@ -518,8 +572,8 @@ public class Booster implements Serializable, KryoSerializable {
     "0:[f28<-9.53674316e-07] yes=1,no=2,missing=1,gain=4000.53101,cover=1628.25"
     So the line has to be split according to whether cover or gain is desired */
     String splitter = "gain=";
-    if (importanceType == FeatureImportanceType.COVER
-        || importanceType == FeatureImportanceType.TOTAL_COVER) {
+    if (importanceType.equals(FeatureImportanceType.COVER)
+        || importanceType.equals(FeatureImportanceType.TOTAL_COVER)) {
       splitter = "cover=";
     }
     for (String tree: modelInfos) {
@@ -545,8 +599,8 @@ public class Booster implements Serializable, KryoSerializable {
     }
     /* By default we calculate total gain and total cover.
     Divide by the number of nodes per feature to get gain / cover */
-    if (importanceType == FeatureImportanceType.COVER
-        || importanceType == FeatureImportanceType.GAIN) {
+    if (importanceType.equals(FeatureImportanceType.COVER)
+        || importanceType.equals(FeatureImportanceType.GAIN)) {
       for (String fid: importanceMap.keySet()) {
         importanceMap.put(fid, importanceMap.get(fid)/weightMap.get(fid));
       }

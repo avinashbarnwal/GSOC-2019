@@ -1,5 +1,5 @@
 /*!
- * Copyright 2016-2018 XGBoost contributors
+ * Copyright 2016-2019 XGBoost contributors
  */
 #ifndef XGBOOST_TESTS_CPP_HELPERS_H_
 #define XGBOOST_TESTS_CPP_HELPERS_H_
@@ -17,11 +17,21 @@
 #include <xgboost/base.h>
 #include <xgboost/objective.h>
 #include <xgboost/metric.h>
+#include <xgboost/predictor.h>
+#include <xgboost/generic_parameters.h>
+
+#include "../../src/common/common.h"
 
 #if defined(__CUDACC__)
 #define DeclareUnifiedTest(name) GPU ## name
 #else
 #define DeclareUnifiedTest(name) name
+#endif
+
+#if defined(__CUDACC__)
+#define NGPUS 1
+#else
+#define NGPUS 0
 #endif
 
 bool FileExists(const std::string& filename);
@@ -152,6 +162,41 @@ class SimpleRealUniformDistribution {
  */
 std::shared_ptr<xgboost::DMatrix> *CreateDMatrix(int rows, int columns,
                                                  float sparsity, int seed = 0);
+
+std::unique_ptr<DMatrix> CreateSparsePageDMatrix(
+    size_t n_entries, size_t page_size, std::string tmp_file);
+
+/**
+ * \fn std::unique_ptr<DMatrix> CreateSparsePageDMatrixWithRC(size_t n_rows, size_t n_cols,
+ *                                                            size_t page_size);
+ *
+ * \brief Creates dmatrix with some records, each record containing random number of
+ *        features in [1, n_cols]
+ *
+ * \param n_rows      Number of records to create.
+ * \param n_cols      Max number of features within that record.
+ * \param page_size   Sparse page size for the pages within the dmatrix. If page size is 0
+ *                    then the entire dmatrix is resident in memory; else, multiple sparse pages
+ *                    of page size are created and backed to disk, which would have to be
+ *                    streamed in at point of use.
+ * \param deterministic The content inside the dmatrix is constant for this configuration, if true;
+ *                      else, the content changes every time this method is invoked
+ *
+ * \return The new dmatrix.
+ */
+std::unique_ptr<DMatrix> CreateSparsePageDMatrixWithRC(size_t n_rows, size_t n_cols,
+                                                       size_t page_size, bool deterministic);
+
+gbm::GBTreeModel CreateTestModel();
+
+inline GenericParameter CreateEmptyGenericParam(int gpu_id, int n_gpus) {
+  xgboost::GenericParameter tparam;
+  std::vector<std::pair<std::string, std::string>> args {
+    {"gpu_id", std::to_string(gpu_id)},
+    {"n_gpus", std::to_string(n_gpus)}};
+  tparam.Init(args);
+  return tparam;
+}
 
 }  // namespace xgboost
 #endif

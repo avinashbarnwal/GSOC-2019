@@ -1,17 +1,21 @@
 /*!
- * Copyright 2017 XGBoost contributors
+ * Copyright 2017-2019 XGBoost contributors
  */
 #pragma once
 #include <thrust/device_ptr.h>
 #include <thrust/device_vector.h>
+#include <thrust/device_malloc_allocator.h>
 #include <thrust/system/cuda/error.h>
 #include <thrust/system_error.h>
 #include <xgboost/logging.h>
+#include <rabit/rabit.h>
+#include <cub/util_allocator.cuh>
 
 #include "common.h"
 #include "span.h"
 
 #include <algorithm>
+#include <omp.h>
 #include <chrono>
 #include <ctime>
 #include <cub/cub.cuh>
@@ -24,10 +28,6 @@
 #ifdef XGBOOST_USE_NCCL
 #include "nccl.h"
 #include "../common/io.h"
-#endif
-
-#if __CUDACC_VER_MAJOR__ == 10 && __CUDACC_VER_MINOR__ == 1
-#error "CUDA 10.1 is not supported, see #4264."
 #endif
 
 namespace dh {
@@ -50,11 +50,6 @@ inline ncclResult_t ThrowOnNcclError(ncclResult_t code, const char *file,
   return code;
 }
 #endif
-
-template <typename T>
-T *Raw(thrust::device_vector<T> &v) {  //  NOLINT
-  return raw_pointer_cast(v.data());
-}
 
 inline void CudaCheckPointerDevice(void* ptr) {
   cudaPointerAttributes attr;
@@ -188,11 +183,6 @@ __device__ void BlockFill(IterT begin, size_t n, ValueT value) {
  * Kernel launcher
  */
 
-template <typename T1, typename T2>
-T1 DivRoundUp(const T1 a, const T2 b) {
-  return static_cast<T1>(ceil(static_cast<double>(a) / b));
-}
-
 template <typename L>
 __global__ void LaunchNKernel(size_t begin, size_t end, L lambda) {
   for (auto i : GridStrideRange(begin, end)) {
@@ -216,7 +206,7 @@ inline void LaunchN(int device_idx, size_t n, cudaStream_t stream, L lambda) {
   safe_cuda(cudaSetDevice(device_idx));
 
   const int GRID_SIZE =
-      static_cast<int>(DivRoundUp(n, ITEMS_PER_THREAD * BLOCK_THREADS));
+      static_cast<int>(xgboost::common::DivRoundUp(n, ITEMS_PER_THREAD * BLOCK_THREADS));
   LaunchNKernel<<<GRID_SIZE, BLOCK_THREADS, 0, stream>>>(static_cast<size_t>(0),
                                                          n, lambda);
 }
@@ -227,6 +217,152 @@ inline void LaunchN(int device_idx, size_t n, L lambda) {
   LaunchN<ITEMS_PER_THREAD, BLOCK_THREADS>(device_idx, n, nullptr, lambda);
 }
 
+namespace detail {
+/** \brief Keeps track of global device memory allocations. Thread safe.*/
+class MemoryLogger {
+  // Information for a single device
+  struct DeviceStats {
+    size_t currently_allocated_bytes{ 0 };
+    size_t peak_allocated_bytes{ 0 };
+    size_t num_allocations{ 0 };
+    size_t num_deallocations{ 0 };
+    std::map<void *, size_t> device_allocations;
+    void RegisterAllocation(void *ptr, size_t n) {
+      device_allocations[ptr] = n;
+      currently_allocated_bytes += n;
+      peak_allocated_bytes =
+        std::max(peak_allocated_bytes, currently_allocated_bytes);
+      num_allocations++;
+      CHECK_GT(num_allocations, num_deallocations);
+    }
+    void RegisterDeallocation(void *ptr, size_t n, int current_device) {
+      auto itr = device_allocations.find(ptr);
+      if (itr == device_allocations.end()) {
+        LOG(FATAL) << "Attempting to deallocate " << n << " bytes on device "
+                   << current_device << " that was never allocated ";
+      }
+      num_deallocations++;
+      CHECK_LE(num_deallocations, num_allocations);
+      CHECK_EQ(itr->second, n);
+      currently_allocated_bytes -= itr->second;
+      device_allocations.erase(itr);
+    }
+  };
+  std::map<int, DeviceStats>
+    stats_;  // Map device ordinal to memory information
+  std::mutex mutex_;
+
+public:
+  void RegisterAllocation(void *ptr, size_t n) {
+    if (!xgboost::ConsoleLogger::ShouldLog(xgboost::ConsoleLogger::LV::kDebug))
+      return;
+    std::lock_guard<std::mutex> guard(mutex_);
+    int current_device;
+    safe_cuda(cudaGetDevice(&current_device));
+    stats_[current_device].RegisterAllocation(ptr, n);
+    CHECK_LE(stats_[current_device].peak_allocated_bytes, dh::TotalMemory(current_device));
+  }
+  void RegisterDeallocation(void *ptr, size_t n) {
+    if (!xgboost::ConsoleLogger::ShouldLog(xgboost::ConsoleLogger::LV::kDebug))
+      return;
+    std::lock_guard<std::mutex> guard(mutex_);
+    int current_device;
+    safe_cuda(cudaGetDevice(&current_device));
+    stats_[current_device].RegisterDeallocation(ptr, n, current_device);
+  }
+  void Log() {
+    if (!xgboost::ConsoleLogger::ShouldLog(xgboost::ConsoleLogger::LV::kDebug))
+      return;
+    std::lock_guard<std::mutex> guard(mutex_);
+    for (const auto &kv : stats_) {
+      LOG(CONSOLE) << "======== Device " << kv.first << " Memory Allocations: "
+        << " ========";
+      LOG(CONSOLE) << "Peak memory usage: "
+        << kv.second.peak_allocated_bytes / 1000000 << "mb";
+      LOG(CONSOLE) << "Number of allocations: " << kv.second.num_allocations;
+    }
+  }
+};
+};
+
+inline detail::MemoryLogger &GlobalMemoryLogger() {
+  static detail::MemoryLogger memory_logger;
+  return memory_logger;
+}
+
+namespace detail{
+/**
+ * \brief Default memory allocator, uses cudaMalloc/Free and logs allocations if verbose.
+ */
+template <class T>
+struct XGBDefaultDeviceAllocatorImpl : thrust::device_malloc_allocator<T> {
+  using super_t = thrust::device_malloc_allocator<T>;
+  using pointer = thrust::device_ptr<T>;
+  template<typename U>
+  struct rebind
+  {
+    typedef XGBDefaultDeviceAllocatorImpl<U> other;
+  };
+  pointer allocate(size_t n) {
+    pointer ptr = super_t::allocate(n);
+    GlobalMemoryLogger().RegisterAllocation(ptr.get(), n * sizeof(T));
+    return ptr;
+  }
+  void deallocate(pointer ptr, size_t n) {
+    GlobalMemoryLogger().RegisterDeallocation(ptr.get(), n * sizeof(T));
+    return super_t::deallocate(ptr, n);
+  }
+};
+
+/**
+ * \brief Caching memory allocator, uses cub::CachingDeviceAllocator as a back-end and logs allocations if verbose. Does not initialise memory on construction.
+ */
+template <class T>
+struct XGBCachingDeviceAllocatorImpl : thrust::device_malloc_allocator<T> {
+  using pointer = thrust::device_ptr<T>;
+  template<typename U>
+  struct rebind
+  {
+    typedef XGBCachingDeviceAllocatorImpl<U> other;
+  };
+   cub::CachingDeviceAllocator& GetGlobalCachingAllocator ()
+   {
+    // Configure allocator with maximum cached bin size of ~1GB and no limit on
+    // maximum cached bytes
+     static cub::CachingDeviceAllocator *allocator = new cub::CachingDeviceAllocator(2, 9, 29);
+     return *allocator;
+   }
+   pointer allocate(size_t n) {
+     T *ptr;
+     GetGlobalCachingAllocator().DeviceAllocate(reinterpret_cast<void **>(&ptr),
+                                                n * sizeof(T));
+     pointer thrust_ptr(ptr);
+     GlobalMemoryLogger().RegisterAllocation(thrust_ptr.get(), n * sizeof(T));
+     return thrust_ptr;
+   }
+   void deallocate(pointer ptr, size_t n) {
+     GlobalMemoryLogger().RegisterDeallocation(ptr.get(), n * sizeof(T));
+     GetGlobalCachingAllocator().DeviceFree(ptr.get());
+   }
+  __host__ __device__
+    void construct(T *)
+  {
+    // no-op
+  }
+};
+};
+
+// Declare xgboost allocators
+// Replacement of allocator with custom backend should occur here
+template <typename T>
+using XGBDeviceAllocator = detail::XGBDefaultDeviceAllocatorImpl<T>;
+template <typename T>
+using XGBCachingDeviceAllocator = detail::XGBCachingDeviceAllocatorImpl<T>;
+/** \brief Specialisation of thrust device vector using custom allocator. */
+template <typename T>
+using device_vector = thrust::device_vector<T,  XGBDeviceAllocator<T>>;
+template <typename T>
+using caching_device_vector = thrust::device_vector<T,  XGBCachingDeviceAllocator<T>>;
 
 /**
  * \brief A double buffer, useful for algorithms like sort.
@@ -237,6 +373,12 @@ class DoubleBuffer {
   cub::DoubleBuffer<T> buff;
   xgboost::common::Span<T> a, b;
   DoubleBuffer() = default;
+  template <typename VectorT>
+  DoubleBuffer(VectorT *v1, VectorT *v2) {
+    a = xgboost::common::Span<T>(v1->data().get(), v1->size());
+    b = xgboost::common::Span<T>(v2->data().get(), v2->size());
+    buff = cub::DoubleBuffer<T>(a.data(), b.data());
+  }
 
   size_t Size() const {
     CHECK_EQ(a.size(), b.size());
@@ -263,6 +405,20 @@ class DoubleBuffer {
  */
 template <typename T>
 void CopyDeviceSpanToVector(std::vector<T> *dst, xgboost::common::Span<T> src) {
+  CHECK_EQ(dst->size(), src.size());
+  dh::safe_cuda(cudaMemcpyAsync(dst->data(), src.data(), dst->size() * sizeof(T),
+                                cudaMemcpyDeviceToHost));
+}
+
+/**
+ * \brief Copies const device span to std::vector.
+ *
+ * \tparam  T Generic type parameter.
+ * \param [in,out]  dst Copy destination.
+ * \param           src Copy source. Must be device memory.
+ */
+template <typename T>
+void CopyDeviceSpanToVector(std::vector<T> *dst, xgboost::common::Span<const T> src) {
   CHECK_EQ(dst->size(), src.size());
   dh::safe_cuda(cudaMemcpyAsync(dst->data(), src.data(), dst->size() * sizeof(T),
                                 cudaMemcpyDeviceToHost));
@@ -337,10 +493,9 @@ class BulkAllocator {
   }
 
   char *AllocateDevice(int device_idx, size_t bytes) {
-    char *ptr;
     safe_cuda(cudaSetDevice(device_idx));
-    safe_cuda(cudaMalloc(&ptr, bytes));
-    return ptr;
+    XGBDeviceAllocator<char> allocator;
+    return allocator.allocate(bytes).get();
   }
 
   template <typename T>
@@ -385,7 +540,8 @@ class BulkAllocator {
     for (size_t i = 0; i < d_ptr_.size(); i++) {
       if (!(d_ptr_[i] == nullptr)) {
         safe_cuda(cudaSetDevice(device_idx_[i]));
-        safe_cuda(cudaFree(d_ptr_[i]));
+        XGBDeviceAllocator<char> allocator;
+        allocator.deallocate(thrust::device_ptr<char>(d_ptr_[i]), size_[i]);
         d_ptr_[i] = nullptr;
       }
     }
@@ -455,14 +611,19 @@ struct CubMemory {
 
   void Free() {
     if (this->IsAllocated()) {
-      safe_cuda(cudaFree(d_temp_storage));
+      XGBDeviceAllocator<uint8_t> allocator;
+      allocator.deallocate(thrust::device_ptr<uint8_t>(static_cast<uint8_t *>(d_temp_storage)),
+                           temp_storage_bytes);
+      d_temp_storage = nullptr;
+      temp_storage_bytes = 0;
     }
   }
 
   void LazyAllocate(size_t num_bytes) {
     if (num_bytes > temp_storage_bytes) {
       Free();
-      safe_cuda(cudaMalloc(&d_temp_storage, num_bytes));
+      XGBDeviceAllocator<uint8_t> allocator;
+      d_temp_storage = static_cast<void *>(allocator.allocate(num_bytes).get());
       temp_storage_bytes = num_bytes;
     }
   }
@@ -571,7 +732,7 @@ void SparseTransformLbs(int device_idx, dh::CubMemory *temp_memory,
   const int BLOCK_THREADS = 256;
   const int ITEMS_PER_THREAD = 1;
   const int TILE_SIZE = BLOCK_THREADS * ITEMS_PER_THREAD;
-  auto num_tiles = dh::DivRoundUp(count + num_segments, BLOCK_THREADS);
+  auto num_tiles = xgboost::common::DivRoundUp(count + num_segments, BLOCK_THREADS);
   CHECK(num_tiles < std::numeric_limits<unsigned int>::max());
 
   temp_memory->LazyAllocate(sizeof(CoordinateT) * (num_tiles + 1));
@@ -752,6 +913,29 @@ void Gather(int device_idx, T *out, const T *in, const int *instId, int nVals) {
                                        });
 }
 
+class SaveCudaContext {
+ private:
+  int saved_device_;
+
+ public:
+  template <typename Functor>
+  explicit SaveCudaContext (Functor func) : saved_device_{-1} {
+    // When compiled with CUDA but running on CPU only device,
+    // cudaGetDevice will fail.
+    try {
+      safe_cuda(cudaGetDevice(&saved_device_));
+    } catch (const dmlc::Error &except) {
+      saved_device_ = -1;
+    }
+    func();
+  }
+  ~SaveCudaContext() {
+    if (saved_device_ != -1) {
+      safe_cuda(cudaSetDevice(saved_device_));
+    }
+  }
+};
+
 /**
  * \class AllReducer
  *
@@ -764,6 +948,7 @@ class AllReducer {
   bool initialised_;
   size_t allreduce_bytes_;  // Keep statistics of the number of bytes communicated
   size_t allreduce_calls_;  // Keep statistics of the number of reduce calls
+  std::vector<size_t> host_data;  // Used for all reduce on host
 #ifdef XGBOOST_USE_NCCL
   std::vector<ncclComm_t> comms;
   std::vector<cudaStream_t> streams;
@@ -777,8 +962,18 @@ class AllReducer {
                  allreduce_calls_(0) {}
 
   /**
-   * \fn  void Init(const std::vector<int> &device_ordinals)
-   *
+   * \brief If we are using a single GPU only
+   */
+  bool IsSingleGPU() {
+#ifdef XGBOOST_USE_NCCL
+    CHECK(device_counts.size() > 0) << "AllReducer not initialised.";
+    return device_counts.size() <= 1 && device_counts.at(0) == 1;
+#else
+    return true;
+#endif
+  }
+
+  /**
    * \brief Initialise with the desired device ordinals for this communication
    * group.
    *
@@ -956,6 +1151,22 @@ class AllReducer {
 #endif
   };
 
+  /**
+   * \brief Synchronizes the device
+   *
+   * \param device_id Identifier for the device.
+   */
+  void Synchronize(int device_id) {
+#ifdef XGBOOST_USE_NCCL
+    SaveCudaContext([&]() {
+      dh::safe_cuda(cudaSetDevice(device_id));
+      int idx = std::find(device_ordinals.begin(), device_ordinals.end(), device_id) - device_ordinals.begin();
+      CHECK(idx < device_ordinals.size());
+      dh::safe_cuda(cudaStreamSynchronize(streams[idx]));
+    });
+#endif
+  };
+
 #ifdef XGBOOST_USE_NCCL
   /**
    * \fn  ncclUniqueId GetUniqueId()
@@ -978,28 +1189,43 @@ class AllReducer {
     return id;
   }
 #endif
-};
-
-class SaveCudaContext {
- private:
-  int saved_device_;
-
- public:
-  template <typename Functor>
-  explicit SaveCudaContext (Functor func) : saved_device_{-1} {
-    // When compiled with CUDA but running on CPU only device,
-    // cudaGetDevice will fail.
-    try {
-      safe_cuda(cudaGetDevice(&saved_device_));
-    } catch (const dmlc::Error &except) {
-      saved_device_ = -1;
+  /** \brief Perform max all reduce operation on the host. This function first
+   * reduces over omp threads then over nodes using rabit (which is not thread
+   * safe) using the master thread. Uses naive reduce algorithm for local
+   * threads, don't expect this to scale.*/
+  void HostMaxAllReduce(std::vector<size_t> *p_data) {
+#ifdef XGBOOST_USE_NCCL
+    auto &data = *p_data;
+    // Wait in case some other thread is accessing host_data
+#pragma omp barrier
+    // Reset shared buffer
+#pragma omp single
+    {
+      host_data.resize(data.size());
+      std::fill(host_data.begin(), host_data.end(), size_t(0));
     }
-    func();
-  }
-  ~SaveCudaContext() {
-    if (saved_device_ != -1) {
-      safe_cuda(cudaSetDevice(saved_device_));
+    // Threads update shared array
+    for (auto i = 0ull; i < data.size(); i++) {
+#pragma omp critical
+      { host_data[i] = std::max(host_data[i], data[i]); }
     }
+    // Wait until all threads are finished
+#pragma omp barrier
+
+    // One thread performs all reduce across distributed nodes
+#pragma omp master
+    {
+      rabit::Allreduce<rabit::op::Max, size_t>(host_data.data(),
+                                               host_data.size());
+    }
+
+#pragma omp barrier
+
+    // Threads can now read back all reduced values
+    for (auto i = 0ull; i < data.size(); i++) {
+      data[i] = host_data[i];
+    }
+#endif
   }
 };
 
@@ -1017,11 +1243,15 @@ class SaveCudaContext {
 template <typename T, typename FunctionT>
 void ExecuteIndexShards(std::vector<T> *shards, FunctionT f) {
   SaveCudaContext{[&]() {
+    // Temporarily turn off dynamic so we have a guaranteed number of threads
+    bool dynamic = omp_get_dynamic();
+    omp_set_dynamic(false);
     const long shards_size = static_cast<long>(shards->size());
-#pragma omp parallel for schedule(static, 1) if (shards_size > 1)
+#pragma omp parallel for schedule(static, 1) if (shards_size > 1) num_threads(shards_size)
     for (long shard = 0; shard < shards_size; ++shard) {
       f(shard, shards->at(shard));
     }
+    omp_set_dynamic(dynamic);
   }};
 }
 
@@ -1054,7 +1284,7 @@ ReduceT ReduceShards(std::vector<ShardT> *shards, FunctionT f) {
 template <typename T,
   typename IndexT = typename xgboost::common::Span<T>::index_type>
 xgboost::common::Span<T> ToSpan(
-    thrust::device_vector<T>& vec,
+    device_vector<T>& vec,
     IndexT offset = 0,
     IndexT size = -1) {
   size = size == -1 ? vec.size() : size;

@@ -76,7 +76,7 @@ static const int kNoneKey = -100;
  */
 template <int BLKDIM_L1L3 = 256>
 int ScanTempBufferSize(int size) {
-  int num_blocks = dh::DivRoundUp(size, BLKDIM_L1L3);
+  int num_blocks = common::DivRoundUp(size, BLKDIM_L1L3);
   return num_blocks;
 }
 
@@ -144,7 +144,7 @@ __global__ void CubScanByKeyL1(
   int previousKey = __shfl_up_sync(0xFFFFFFFF, myKey, 1);
 #else
   int previousKey = __shfl_up(myKey, 1);
-#endif
+#endif  // (__CUDACC_VER_MAJOR__ >= 9)
   // Collectively compute the block-wide exclusive prefix sum
   BlockScan(temp_storage)
       .ExclusiveScan(threadData, threadData, rootPair, AddByKey());
@@ -250,7 +250,7 @@ void ReduceScanByKey(common::Span<GradientPair> sums,
                      common::Span<GradientPair> tmpScans,
                      common::Span<int> tmpKeys,
                      common::Span<const int> colIds, NodeIdT nodeStart) {
-  int nBlks = dh::DivRoundUp(size, BLKDIM_L1L3);
+  int nBlks = common::DivRoundUp(size, BLKDIM_L1L3);
   cudaMemset(sums.data(), 0, nUniqKeys * nCols * sizeof(GradientPair));
   CubScanByKeyL1<BLKDIM_L1L3>
       <<<nBlks, BLKDIM_L1L3>>>(scans, vals, instIds, tmpScans, tmpKeys, keys,
@@ -443,11 +443,12 @@ void ArgMaxByKey(common::Span<ExactSplitCandidate> nodeSplits,
                  common::Span<const DeviceNodeStats> nodes,
                  int nUniqKeys,
                  NodeIdT nodeStart, int len, const TrainParam param,
-                 ArgMaxByKeyAlgo algo) {
+                 ArgMaxByKeyAlgo algo,
+                 GPUSet const& devices) {
   dh::FillConst<ExactSplitCandidate, BLKDIM, ITEMS_PER_THREAD>(
-      param.gpu_id, nodeSplits.data(), nUniqKeys,
+      *(devices.begin()), nodeSplits.data(), nUniqKeys,
       ExactSplitCandidate());
-  int nBlks = dh::DivRoundUp(len, ITEMS_PER_THREAD * BLKDIM);
+  int nBlks = common::DivRoundUp(len, ITEMS_PER_THREAD * BLKDIM);
   switch (algo) {
     case kAbkGmem:
       AtomicArgMaxByKeyGmem<<<nBlks, BLKDIM>>>(
@@ -566,7 +567,7 @@ class GPUMaker : public TreeUpdater {
   int maxNodes_;
   int maxLeaves_;
 
-  // devices are only used for resharding the HostDeviceVector passed as a parameter;
+  // devices are only used for sharding the HostDeviceVector passed as a parameter;
   // the algorithm works with a single GPU only
   GPUSet devices_;
 
@@ -580,12 +581,16 @@ class GPUMaker : public TreeUpdater {
   GPUMaker() : allocated_{false} {}
   ~GPUMaker() override = default;
 
-  void Init(const std::vector<std::pair<std::string, std::string>> &args) override {
+  char const* Name() const override {
+    return "gpu_exact";
+  }
+
+  void Configure(const Args &args) override {
      param_.InitAllowUnknown(args);
      maxNodes_ = (1 << (param_.max_depth + 1)) - 1;
      maxLeaves_ = 1 << param_.max_depth;
 
-     devices_ = GPUSet::All(param_.gpu_id, param_.n_gpus);
+     devices_ = GPUSet::All(tparam_->gpu_id, tparam_->n_gpus);
   }
 
   void Update(HostDeviceVector<GradientPair>* gpair, DMatrix* dmat,
@@ -594,7 +599,7 @@ class GPUMaker : public TreeUpdater {
     float lr = param_.learning_rate;
     param_.learning_rate = lr / trees.size();
 
-    gpair->Reshard(devices_);
+    gpair->Shard(devices_);
 
     try {
       // build tree
@@ -641,7 +646,7 @@ class GPUMaker : public TreeUpdater {
     float min_split_loss = param_.min_split_loss;
     auto gpu_param = GPUTrainingParam(param_);
 
-    dh::LaunchN(param_.gpu_id, nNodes, [=] __device__(int uid) {
+    dh::LaunchN(*(devices_.begin()), nNodes, [=] __device__(int uid) {
       int absNodeId = uid + nodeStart;
       ExactSplitCandidate s = d_nodeSplits[uid];
       if (s.IsSplittable(min_split_loss)) {
@@ -683,16 +688,18 @@ class GPUMaker : public TreeUpdater {
                     instIds_.CurrentSpan(), nodeAssigns_.CurrentSpan(), n_vals_, nNodes,
                     n_cols_, tmpScanGradBuff_, tmp_scan_key_buff_,
                     colIds_, nodeStart);
+    auto devices = GPUSet::All(tparam_->gpu_id, tparam_->n_gpus);
     ArgMaxByKey(nodeSplits_, gradscans_, gradsums_,
                 vals_.CurrentSpan(), colIds_, nodeAssigns_.CurrentSpan(),
                 nodes_, nNodes, nodeStart, n_vals_, param_,
-                level <= kMaxAbkLevels ? kAbkSmem : kAbkGmem);
+                level <= kMaxAbkLevels ? kAbkSmem : kAbkGmem,
+                devices);
     Split2Node(nNodes, nodeStart);
   }
 
   void AllocateAllData(int offsetSize) {
     int tmpBuffSize = ScanTempBufferSize(n_vals_);
-    ba_.Allocate(param_.gpu_id, &vals_, n_vals_,
+    ba_.Allocate(*(devices_.begin()), &vals_, n_vals_,
                  &vals_cached_, n_vals_, &instIds_, n_vals_, &inst_ids_cached_, n_vals_,
                  &colOffsets_, offsetSize, &gradsInst_, n_rows_, &nodeAssigns_, n_vals_,
                  &nodeLocations_, n_vals_, &nodes_, maxNodes_, &node_assigns_per_inst_,
@@ -783,24 +790,24 @@ class GPUMaker : public TreeUpdater {
       auto d_nodes = nodes_;
       auto d_sums = gradsums_;
       auto gpu_params = GPUTrainingParam(param_);
-      dh::LaunchN(param_.gpu_id, 1, [=] __device__(int idx) {
+      dh::LaunchN(*(devices_.begin()), 1, [=] __device__(int idx) {
         d_nodes[0] = DeviceNodeStats(d_sums[0], 0, gpu_params);
       });
     } else {
       const int BlkDim = 256;
       const int ItemsPerThread = 4;
       // assign default node ids first
-      int nBlks = dh::DivRoundUp(n_rows_, BlkDim);
+      int nBlks = common::DivRoundUp(n_rows_, BlkDim);
       FillDefaultNodeIds<<<nBlks, BlkDim>>>(node_assigns_per_inst_.data(),
                                             nodes_.data(), n_rows_);
       // evaluate the correct child indices of non-missing values next
-      nBlks = dh::DivRoundUp(n_vals_, BlkDim * ItemsPerThread);
+      nBlks = common::DivRoundUp(n_vals_, BlkDim * ItemsPerThread);
       AssignNodeIds<<<nBlks, BlkDim>>>(
           node_assigns_per_inst_.data(), nodeLocations_.Current(),
           nodeAssigns_.Current(), instIds_.Current(), nodes_.data(),
           colOffsets_.data(), vals_.Current(), n_vals_, n_cols_);
       // gather the node assignments across all other columns too
-      dh::Gather(param_.gpu_id, nodeAssigns_.Current(),
+      dh::Gather(*(devices_.begin()), nodeAssigns_.Current(),
                  node_assigns_per_inst_.data(), instIds_.Current(), n_vals_);
       SortKeys(level);
     }
@@ -811,7 +818,7 @@ class GPUMaker : public TreeUpdater {
     // but we don't need more than level+1 bits for sorting!
     SegmentedSort(&tmp_mem_, &nodeAssigns_, &nodeLocations_, n_vals_, n_cols_,
                   colOffsets_, 0, level + 1);
-    dh::Gather<float, int>(param_.gpu_id, vals_.other(),
+    dh::Gather<float, int>(*(devices_.begin()), vals_.other(),
                            vals_.Current(), instIds_.other(), instIds_.Current(),
                            nodeLocations_.Current(), n_vals_);
     vals_.buff.selector ^= 1;
@@ -820,14 +827,18 @@ class GPUMaker : public TreeUpdater {
 
   void MarkLeaves() {
     const int BlkDim = 128;
-    int nBlks = dh::DivRoundUp(maxNodes_, BlkDim);
+    int nBlks = common::DivRoundUp(maxNodes_, BlkDim);
     MarkLeavesKernel<<<nBlks, BlkDim>>>(nodes_.data(), maxNodes_);
   }
 };
 
 XGBOOST_REGISTER_TREE_UPDATER(GPUMaker, "grow_gpu")
     .describe("Grow tree with GPU.")
-    .set_body([]() { return new GPUMaker(); });
+    .set_body([]() {
+      LOG(WARNING) << "The gpu_exact tree method is deprecated and may be "
+                      "removed in a future version.";
+      return new GPUMaker();
+    });
 
 }  // namespace tree
 }  // namespace xgboost

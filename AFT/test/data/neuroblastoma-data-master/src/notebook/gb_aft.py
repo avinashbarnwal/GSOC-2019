@@ -390,6 +390,7 @@ class BaseGradientBoosting():
         for k in range(loss.K):
    
             residual = loss.negative_gradient(y_lower,y_higher,pred,self.dist,self.sigma,k=k,sample_weight=sample_weight)
+            
         
             # induce regression tree on residuals
             tree     = DecisionTreeRegressor(
@@ -410,6 +411,8 @@ class BaseGradientBoosting():
             if self.subsample < 1.0:
                 # no inplace multiplication!
                 sample_weight = sample_weight * sample_mask.astype(np.float64)
+                
+              
                 
 
             tree.fit(X, residual, sample_weight=sample_weight)

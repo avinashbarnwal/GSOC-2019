@@ -13,6 +13,7 @@
 */
 
 #include <cstdint>
+#include <rabit/c_api.h>
 #include <xgboost/c_api.h>
 #include <xgboost/base.h>
 #include <xgboost/logging.h>
@@ -278,7 +279,8 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixSliceDMat
   jint* indexset = jenv->GetIntArrayElements(jindexset, 0);
   bst_ulong len = (bst_ulong)jenv->GetArrayLength(jindexset);
 
-  jint ret = (jint) XGDMatrixSliceDMatrix(handle, (int const *)indexset, len, &result);
+  // default to not allowing slicing with group ID specified -- feel free to add if necessary
+  jint ret = (jint) XGDMatrixSliceDMatrixEx(handle, (int const *)indexset, len, &result, 0);
   setHandle(jenv, jout, result);
   //release
   jenv->ReleaseIntArrayElements(jindexset, indexset, 0);
@@ -708,6 +710,68 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterDumpModel
 
 /*
  * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGBoosterGetAttrNames
+ * Signature: (I[[Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterGetAttrNames
+  (JNIEnv *jenv, jclass jcls, jlong jhandle, jobjectArray jout) {
+  BoosterHandle handle = (BoosterHandle) jhandle;
+  bst_ulong len = 0;
+  char **result;
+  int ret = XGBoosterGetAttrNames(handle, &len, (const char ***) &result);
+
+  jsize jlen = (jsize) len;
+  jobjectArray jinfos = jenv->NewObjectArray(jlen, jenv->FindClass("java/lang/String"), jenv->NewStringUTF(""));
+  for(int i=0 ; i<jlen; i++) {
+    jenv->SetObjectArrayElement(jinfos, i, jenv->NewStringUTF((const char*) result[i]));
+  }
+  jenv->SetObjectArrayElement(jout, 0, jinfos);
+
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGBoosterGetAttr
+ * Signature: (JLjava/lang/String;[Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterGetAttr
+  (JNIEnv *jenv, jclass jcls, jlong jhandle, jstring jkey, jobjectArray jout) {
+  BoosterHandle handle = (BoosterHandle) jhandle;
+  const char* key = jenv->GetStringUTFChars(jkey, 0);
+  const char* result;
+  int success;
+  int ret = XGBoosterGetAttr(handle, key, &result, &success);
+  //release
+  if (key) jenv->ReleaseStringUTFChars(jkey, key);
+
+  if (success > 0) {
+    jstring jret = jenv->NewStringUTF(result);
+    jenv->SetObjectArrayElement(jout, 0, jret);
+  }
+
+  return ret;
+};
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGBoosterSetAttr
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterSetAttr
+  (JNIEnv *jenv, jclass jcls, jlong jhandle, jstring jkey, jstring jvalue) {
+  BoosterHandle handle = (BoosterHandle) jhandle;
+  const char* key = jenv->GetStringUTFChars(jkey, 0);
+  const char* value = jenv->GetStringUTFChars(jvalue, 0);
+  int ret = XGBoosterSetAttr(handle, key, value);
+  //release
+  if (key) jenv->ReleaseStringUTFChars(jkey, key);
+  if (value) jenv->ReleaseStringUTFChars(jvalue, value);
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
  * Method:    XGBoosterLoadRabitCheckpoint
  * Signature: (J[I)I
  */
@@ -754,8 +818,11 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_RabitInit
     argv.push_back(&args[i][0]);
   }
 
-  RabitInit(args.size(), dmlc::BeginPtr(argv));
-  return 0;
+  if (RabitInit(args.size(), dmlc::BeginPtr(argv))) {
+    return 0;
+  } else {
+    return 1;
+  }
 }
 
 /*
@@ -765,8 +832,11 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_RabitInit
  */
 JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_RabitFinalize
   (JNIEnv *jenv, jclass jcls) {
-  RabitFinalize();
-  return 0;
+  if (RabitFinalize()) {
+    return 0;
+  } else {
+    return 1;
+  }
 }
 
 /*

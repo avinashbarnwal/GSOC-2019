@@ -27,13 +27,28 @@ import org.apache.spark.Partitioner
 
 class XGBoostClassifierSuite extends FunSuite with PerTest {
 
-  test("XGBoost-Spark XGBoostClassifier ouput should match XGBoost4j") {
+  test("XGBoost-Spark XGBoostClassifier output should match XGBoost4j") {
     val trainingDM = new DMatrix(Classification.train.iterator)
     val testDM = new DMatrix(Classification.test.iterator)
     val trainingDF = buildDataFrame(Classification.train)
     val testDF = buildDataFrame(Classification.test)
-    val round = 5
+    checkResultsWithXGBoost4j(trainingDM, testDM, trainingDF, testDF)
+  }
 
+  test("XGBoostClassifier should make correct predictions after upstream random sort") {
+    val trainingDM = new DMatrix(Classification.train.iterator)
+    val testDM = new DMatrix(Classification.test.iterator)
+    val trainingDF = buildDataFrameWithRandSort(Classification.train)
+    val testDF = buildDataFrameWithRandSort(Classification.test)
+    checkResultsWithXGBoost4j(trainingDM, testDM, trainingDF, testDF)
+  }
+
+  private def checkResultsWithXGBoost4j(
+      trainingDM: DMatrix,
+      testDM: DMatrix,
+      trainingDF: DataFrame,
+      testDF: DataFrame,
+      round: Int = 5): Unit = {
     val paramMap = Map(
       "eta" -> "1",
       "max_depth" -> "6",
@@ -47,7 +62,7 @@ class XGBoostClassifierSuite extends FunSuite with PerTest {
       "num_workers" -> numWorkers)).fit(trainingDF)
 
     val prediction2 = model2.transform(testDF).
-      collect().map(row => (row.getAs[Int]("id"), row.getAs[DenseVector]("probability"))).toMap
+        collect().map(row => (row.getAs[Int]("id"), row.getAs[DenseVector]("probability"))).toMap
 
     assert(testDF.count() === prediction2.size)
     // the vector length in probability column is 2 since we have to fit to the evaluator in Spark
@@ -60,7 +75,7 @@ class XGBoostClassifierSuite extends FunSuite with PerTest {
 
     val prediction3 = model1.predict(testDM, outPutMargin = true)
     val prediction4 = model2.transform(testDF).
-      collect().map(row => (row.getAs[Int]("id"), row.getAs[DenseVector]("rawPrediction"))).toMap
+        collect().map(row => (row.getAs[Int]("id"), row.getAs[DenseVector]("rawPrediction"))).toMap
 
     assert(testDF.count() === prediction4.size)
     // the vector length in rawPrediction column is 2 since we have to fit to the evaluator in Spark
@@ -73,7 +88,9 @@ class XGBoostClassifierSuite extends FunSuite with PerTest {
 
     // check the equality of single instance prediction
     val firstOfDM = testDM.slice(Array(0))
-    val firstOfDF = testDF.head().getAs[Vector]("features")
+    val firstOfDF = testDF.filter(_.getAs[Int]("id") == 0)
+        .head()
+        .getAs[Vector]("features")
     val prediction5 = math.round(model1.predict(firstOfDM)(0)(0))
     val prediction6 = model2.predict(firstOfDF)
     assert(prediction5 === prediction6)
@@ -141,23 +158,6 @@ class XGBoostClassifierSuite extends FunSuite with PerTest {
 
     assert(model.summary.trainObjectiveHistory.length === 5)
     assert(model.summary.validationObjectiveHistory.isEmpty)
-  }
-
-  test("XGBoost and Spark parameters synchronize correctly") {
-    val xgbParamMap = Map("eta" -> "1", "objective" -> "binary:logistic",
-      "objective_type" -> "classification")
-    // from xgboost params to spark params
-    val xgb = new XGBoostClassifier(xgbParamMap)
-    assert(xgb.getEta === 1.0)
-    assert(xgb.getObjective === "binary:logistic")
-    assert(xgb.getObjectiveType === "classification")
-    // from spark to xgboost params
-    val xgbCopy = xgb.copy(ParamMap.empty)
-    assert(xgbCopy.MLlib2XGBoostParams("eta").toString.toDouble === 1.0)
-    assert(xgbCopy.MLlib2XGBoostParams("objective").toString === "binary:logistic")
-    assert(xgbCopy.MLlib2XGBoostParams("objective_type").toString === "classification")
-    val xgbCopy2 = xgb.copy(ParamMap.empty.put(xgb.evalMetric, "logloss"))
-    assert(xgbCopy2.MLlib2XGBoostParams("eval_metric").toString === "logloss")
   }
 
   test("multi class classification") {
@@ -270,7 +270,7 @@ class XGBoostClassifierSuite extends FunSuite with PerTest {
   test("infrequent features") {
     val paramMap = Map("eta" -> "1", "max_depth" -> "6", "silent" -> "1",
       "objective" -> "binary:logistic",
-      "num_round" -> 5, "num_workers" -> 2)
+      "num_round" -> 5, "num_workers" -> 2, "missing" -> 0)
     import DataUtils._
     val sparkSession = SparkSession.builder().getOrCreate()
     import sparkSession.implicits._
@@ -291,7 +291,7 @@ class XGBoostClassifierSuite extends FunSuite with PerTest {
   test("infrequent features (use_external_memory)") {
     val paramMap = Map("eta" -> "1", "max_depth" -> "6", "silent" -> "1",
       "objective" -> "binary:logistic",
-      "num_round" -> 5, "num_workers" -> 2, "use_external_memory" -> true)
+      "num_round" -> 5, "num_workers" -> 2, "use_external_memory" -> true, "missing" -> 0)
     import DataUtils._
     val sparkSession = SparkSession.builder().getOrCreate()
     import sparkSession.implicits._

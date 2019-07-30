@@ -41,7 +41,7 @@ def _hes_f_z(z, dist = 'logistic'):
         w       = math.exp(1)**z
         hes_f_z = f_z*(w**2-4*w+1)/(1+w)**2 
     if dist == 'normal':
-        hes_f_z = (z**2-1)*f_z  
+        hes_f_z = (z**2-1)*f_z    
     return hes_f_z
 
 def _F_z(z, dist = 'logistic'):
@@ -158,7 +158,7 @@ def _hessian(y_lower, y_higher, y_pred, sigma, event = 'left', dist = 'normal'):
         f_z      = _f_z(z,dist)
         F_z      = _F_z(z,dist)
         grad_f_z = _grad_f_z(z,dist)
-        hess     = ((1-F_z)*grad_f_z+f_z**2)/(sigma**2*(1-F_z)**2)
+        hess     = ((1-F_z)*grad_f_z+f_z**2)/(sigma**2*max(0.00005,1-F_z)**2)
         return hess
     
     if event=='interval':
@@ -169,10 +169,9 @@ def _hessian(y_lower, y_higher, y_pred, sigma, event = 'left', dist = 'normal'):
         F_z_u      = _F_z(z_u,dist)
         F_z_l      = _F_z(z_l,dist)
         grad_f_z_u = _grad_f_z(z_u,dist)
-        grad_f_z_l = _grad_f_z(z_l,dist) 
-        hess       = -((F_z_u-F_z_l)*(grad_f_z_u-grad_f_z_l)-(f_z_u-f_z_l)**2)/(sigma**2*(F_z_u-F_z_l)**2)
+        grad_f_z_l = _grad_f_z(z_l,dist)
+        hess       = -((F_z_u-F_z_l)*(grad_f_z_u-grad_f_z_l)-(f_z_u-f_z_l)**2)/(sigma**2*max(0.00005,F_z_u-F_z_l)**2)
         return hess
-    
 
 def negative_gradient(y_lower, y_higher, y_pred, dist, sigma):
     

@@ -6,6 +6,7 @@
 #include "split_evaluator.h"
 #include <dmlc/json.h>
 #include <dmlc/registry.h>
+#include <xgboost/logging.h>
 #include <algorithm>
 #include <unordered_set>
 #include <vector>
@@ -42,8 +43,7 @@ SplitEvaluator* SplitEvaluator::Create(const std::string& name) {
 }
 
 // Default implementations of some virtual methods that aren't always needed
-void SplitEvaluator::Init(
-    const std::vector<std::pair<std::string, std::string> >& args) {}
+void SplitEvaluator::Init(const Args& args) {}
 void SplitEvaluator::Reset() {}
 void SplitEvaluator::AddSplit(bst_uint nodeid,
                               bst_uint leftid,
@@ -59,6 +59,10 @@ bst_float SplitEvaluator::ComputeSplitScore(bst_uint nodeid,
   bst_float left_weight = ComputeWeight(nodeid, left_stats);
   bst_float right_weight = ComputeWeight(nodeid, right_stats);
   return ComputeSplitScore(nodeid, featureid, left_stats, right_stats, left_weight, right_weight);
+}
+
+bool SplitEvaluator::CheckFeatureConstraint(bst_uint nodeid, bst_uint featureid) const {
+  return true;
 }
 
 //! \brief Encapsulates the parameters for ElasticNet
@@ -99,8 +103,7 @@ class ElasticNet final : public SplitEvaluator {
       LOG(FATAL) << "ElasticNet does not accept an inner SplitEvaluator";
     }
   }
-  void Init(
-      const std::vector<std::pair<std::string, std::string> >& args) override {
+  void Init(const Args& args) override {
     params_.InitAllowUnknown(args);
   }
 
@@ -153,6 +156,10 @@ class ElasticNet final : public SplitEvaluator {
     return w;
   }
 
+  bool CheckFeatureConstraint(bst_uint nodeid, bst_uint featureid) const override {
+    return true;
+  }
+
  private:
   ElasticNetParams params_;
 
@@ -201,7 +208,7 @@ class MonotonicConstraint final : public SplitEvaluator {
     inner_ = std::move(inner);
   }
 
-  void Init(const std::vector<std::pair<std::string, std::string> >& args)
+  void Init(const Args& args)
       override {
     inner_->Init(args);
     params_.InitAllowUnknown(args);
@@ -274,7 +281,9 @@ class MonotonicConstraint final : public SplitEvaluator {
                 bst_float leftweight,
                 bst_float rightweight) override {
     inner_->AddSplit(nodeid, leftid, rightid, featureid, leftweight, rightweight);
-    bst_uint newsize = std::max(leftid, rightid) + 1;
+
+    bst_uint newsize = std::max(bst_uint(lower_.size()), bst_uint(std::max(leftid, rightid) + 1u));
+
     lower_.resize(newsize);
     upper_.resize(newsize);
     bst_int constraint = GetConstraint(featureid);
@@ -295,6 +304,10 @@ class MonotonicConstraint final : public SplitEvaluator {
       upper_[leftid] = mid;
       lower_[rightid] = mid;
     }
+  }
+
+  bool CheckFeatureConstraint(bst_uint nodeid, bst_uint featureid) const override {
+    return true;
   }
 
  private:
@@ -354,7 +367,7 @@ class InteractionConstraint final : public SplitEvaluator {
     inner_ = std::move(inner);
   }
 
-  void Init(const std::vector<std::pair<std::string, std::string> >& args)
+  void Init(const Args& args)
       override {
     inner_->Init(args);
     params_.InitAllowUnknown(args);
@@ -372,17 +385,23 @@ class InteractionConstraint final : public SplitEvaluator {
     // Read std::vector<std::vector<bst_uint>> first and then
     //   convert to std::vector<std::unordered_set<bst_uint>>
     std::vector<std::vector<bst_uint>> tmp;
-    reader.Read(&tmp);
+    try {
+      reader.Read(&tmp);
+    } catch (dmlc::Error const& e) {
+      LOG(FATAL) << "Failed to parse feature interaction constraint:\n"
+                 << params_.interaction_constraints << "\n"
+                 << "With error:\n" << e.what();
+    }
     for (const auto& e : tmp) {
       interaction_constraints_.emplace_back(e.begin(), e.end());
     }
 
     // Initialise interaction constraints record with all variables permitted for the first node
-    int_cont_.clear();
-    int_cont_.resize(1, std::unordered_set<bst_uint>());
-    int_cont_[0].reserve(params_.num_feature);
+    node_constraints_.clear();
+    node_constraints_.resize(1, std::unordered_set<bst_uint>());
+    node_constraints_[0].reserve(params_.num_feature);
     for (bst_uint i = 0; i < params_.num_feature; ++i) {
-      int_cont_[0].insert(i);
+      node_constraints_[0].insert(i);
     }
 
     // Initialise splits record
@@ -451,12 +470,12 @@ class InteractionConstraint final : public SplitEvaluator {
     splits_[rightid] = feature_splits;
 
     // Resize constraints record, initialise all features to be not permitted for new nodes
-    int_cont_.resize(newsize, std::unordered_set<bst_uint>());
+    node_constraints_.resize(newsize, std::unordered_set<bst_uint>());
 
     // Permit features used in previous splits
     for (bst_uint fid : feature_splits) {
-      int_cont_[leftid].insert(fid);
-      int_cont_[rightid].insert(fid);
+      node_constraints_[leftid].insert(fid);
+      node_constraints_[rightid].insert(fid);
     }
 
     // Loop across specified interactions in constraints
@@ -474,11 +493,15 @@ class InteractionConstraint final : public SplitEvaluator {
       // If interaction is still relevant, permit all other features in the interaction
       if (flag == 1) {
         for (bst_uint k : constraint) {
-          int_cont_[leftid].insert(k);
-          int_cont_[rightid].insert(k);
+          node_constraints_[leftid].insert(k);
+          node_constraints_[rightid].insert(k);
         }
       }
     }
+  }
+
+  bool CheckFeatureConstraint(bst_uint nodeid, bst_uint featureid) const override {
+    return CheckInteractionConstraint(featureid, nodeid);
   }
 
  private:
@@ -490,7 +513,7 @@ class InteractionConstraint final : public SplitEvaluator {
   std::vector< std::unordered_set<bst_uint> > interaction_constraints_;
   // int_cont_[nid] contains the set of all feature IDs that are allowed to
   //   be used for a split at node nid
-  std::vector< std::unordered_set<bst_uint> > int_cont_;
+  std::vector< std::unordered_set<bst_uint> > node_constraints_;
   // splits_[nid] contains the set of all feature IDs that have been used for
   //   splits in node nid and its parents
   std::vector< std::unordered_set<bst_uint> > splits_;
@@ -500,7 +523,7 @@ class InteractionConstraint final : public SplitEvaluator {
   inline bool CheckInteractionConstraint(bst_uint featureid, bst_uint nodeid) const {
     // short-circuit if no constraint is specified
     return (params_.interaction_constraints.empty()
-            || int_cont_[nodeid].count(featureid) > 0);
+            || node_constraints_.at(nodeid).count(featureid) > 0);
   }
 };
 

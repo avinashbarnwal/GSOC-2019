@@ -42,6 +42,8 @@ void MetaInfo::SaveBinary(dmlc::Stream *fo) const {
   fo->Write(labels_.HostVector());
   fo->Write(group_ptr_);
   fo->Write(qids_);
+  fo->Write(labels_lower_bound_.HostVector());
+  fo->Write(labels_upper_bound_.HostVector());
   fo->Write(weights_.HostVector());
   fo->Write(root_index_);
   fo->Write(base_margin_.HostVector());
@@ -59,8 +61,15 @@ void MetaInfo::LoadBinary(dmlc::Stream *fi) {
   CHECK(fi->Read(&group_ptr_)) << "MetaInfo: invalid format";
   if (version >= kVersionQidAdded) {
     CHECK(fi->Read(&qids_)) << "MetaInfo: invalid format";
-  } else {  // old format doesn't contain qid field
+  } else {  // old format doesn't contain field qids_
     qids_.clear();
+  }
+  if (version >= kVersionBounedLabelAdded) {
+    CHECK(fi->Read(&labels_lower_bound_.HostVector())) << "MetaInfo: invalid format";
+    CHECK(fi->Read(&labels_upper_bound_.HostVector())) << "MetaInfo: invalid format";
+  } else {  // old format doesn't contain fields labels_lower_bound_, labels_upper_bound_
+    labels_lower_bound_.HostVector().clear();
+    labels_upper_bound_.HostVector().clear();
   }
   CHECK(fi->Read(&weights_.HostVector())) << "MetaInfo: invalid format";
   CHECK(fi->Read(&root_index_)) << "MetaInfo: invalid format";
@@ -125,6 +134,16 @@ void MetaInfo::SetInfo(const char* key, const void* dptr, DataType dtype, size_t
     labels.resize(num);
     DISPATCH_CONST_PTR(dtype, dptr, cast_dptr,
                        std::copy(cast_dptr, cast_dptr + num, labels.begin()));
+  } else if (!std::strcmp(key, "label_lower_bound")) {
+    auto& labels = labels_lower_bound_.HostVector();
+    labels.resize(num);
+    DISPATCH_CONST_PTR(dtype, dptr, cast_dptr,
+                       std::copy(cast_dptr, cast_dptr + num, labels.begin()));
+  } else if (!std::strcmp(key, "label_upper_bound")) {
+    auto& labels = labels_upper_bound_.HostVector();
+    labels.resize(num);
+    DISPATCH_CONST_PTR(dtype, dptr, cast_dptr,
+                       std::copy(cast_dptr, cast_dptr + num, labels.begin()));
   } else if (!std::strcmp(key, "weight")) {
     auto& weights = weights_.HostVector();
     weights.resize(num);
@@ -150,7 +169,8 @@ void MetaInfo::SetInfo(const char* key, const void* dptr, DataType dtype, size_t
 DMatrix* DMatrix::Load(const std::string& uri,
                        bool silent,
                        bool load_row_split,
-                       const std::string& file_format) {
+                       const std::string& file_format,
+                       const size_t page_size) {
   std::string fname, cache_file;
   size_t dlm_pos = uri.find('#');
   if (dlm_pos != std::string::npos) {
@@ -217,7 +237,7 @@ DMatrix* DMatrix::Load(const std::string& uri,
 
   std::unique_ptr<dmlc::Parser<uint32_t> > parser(
       dmlc::Parser<uint32_t>::Create(fname.c_str(), partid, npart, file_format.c_str()));
-  DMatrix* dmat = DMatrix::Create(parser.get(), cache_file);
+  DMatrix* dmat = DMatrix::Create(parser.get(), cache_file, page_size);
   if (!silent) {
     LOG(CONSOLE) << dmat->Info().num_row_ << 'x' << dmat->Info().num_col_ << " matrix with "
                  << dmat->Info().num_nonzero_ << " entries loaded from " << uri;
@@ -248,7 +268,8 @@ DMatrix* DMatrix::Load(const std::string& uri,
 }
 
 DMatrix* DMatrix::Create(dmlc::Parser<uint32_t>* parser,
-                         const std::string& cache_prefix) {
+                         const std::string& cache_prefix,
+                         const size_t page_size) {
   if (cache_prefix.length() == 0) {
     std::unique_ptr<data::SimpleCSRSource> source(new data::SimpleCSRSource());
     source->CopyFrom(parser);
@@ -256,7 +277,7 @@ DMatrix* DMatrix::Create(dmlc::Parser<uint32_t>* parser,
   } else {
 #if DMLC_ENABLE_STD_THREAD
     if (!data::SparsePageSource::CacheExist(cache_prefix, ".row.page")) {
-      data::SparsePageSource::CreateRowPage(parser, cache_prefix);
+      data::SparsePageSource::CreateRowPage(parser, cache_prefix, page_size);
     }
     std::unique_ptr<data::SparsePageSource> source(
         new data::SparsePageSource(cache_prefix, ".row.page"));
@@ -374,7 +395,7 @@ void SparsePage::PushCSC(const SparsePage &batch) {
   std::vector<size_t> offset(other_offset.size());
   offset[0] = 0;
 
-  std::vector<xgboost::Entry> data(self_data.size() + batch.data.Size());
+  std::vector<xgboost::Entry> data(self_data.size() + other_data.size());
 
   // n_cols in original csr data matrix, here in csc is n_rows
   size_t const n_features = other_offset.size() - 1;
@@ -383,7 +404,11 @@ void SparsePage::PushCSC(const SparsePage &batch) {
   for (size_t i = 0; i < n_features; ++i) {
     size_t const self_beg = self_offset.at(i);
     size_t const self_length = self_offset.at(i+1) - self_beg;
-    CHECK_LT(beg, data.size());
+    // It is possible that the current feature and further features aren't referenced
+    // in any rows accumulated thus far. It is also possible for this to happen
+    // in the current sparse page row batch as well.
+    // Hence, the incremental number of rows may stay constant thus equaling the data size
+    CHECK_LE(beg, data.size());
     std::memcpy(dmlc::BeginPtr(data)+beg,
                 dmlc::BeginPtr(self_data) + self_beg,
                 sizeof(Entry) * self_length);
@@ -391,7 +416,7 @@ void SparsePage::PushCSC(const SparsePage &batch) {
 
     size_t const other_beg = other_offset.at(i);
     size_t const other_length = other_offset.at(i+1) - other_beg;
-    CHECK_LT(beg, data.size());
+    CHECK_LE(beg, data.size());
     std::memcpy(dmlc::BeginPtr(data)+beg,
                 dmlc::BeginPtr(other_data) + other_beg,
                 sizeof(Entry) * other_length);
@@ -404,6 +429,18 @@ void SparsePage::PushCSC(const SparsePage &batch) {
 
   self_data = std::move(data);
   self_offset = std::move(offset);
+}
+
+void SparsePage::Push(const Inst &inst) {
+  auto& data_vec = data.HostVector();
+  auto& offset_vec = offset.HostVector();
+  offset_vec.push_back(offset_vec.back() + inst.size());
+  size_t begin = data_vec.size();
+  data_vec.resize(begin + inst.size());
+  if (inst.size() != 0) {
+    std::memcpy(dmlc::BeginPtr(data_vec) + begin, inst.data(),
+                sizeof(Entry) * inst.size());
+  }
 }
 
 namespace data {

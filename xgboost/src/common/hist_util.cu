@@ -3,6 +3,7 @@
  */
 
 #include "./hist_util.h"
+#include <xgboost/logging.h>
 
 #include <thrust/copy.h>
 #include <thrust/functional.h>
@@ -13,6 +14,8 @@
 
 #include <utility>
 #include <vector>
+#include <memory>
+#include <mutex>
 
 #include "../tree/param.h"
 #include "./host_device_vector.h"
@@ -22,7 +25,7 @@
 namespace xgboost {
 namespace common {
 
-using WXQSketch = HistCutMatrix::WXQSketch;
+using WXQSketch = DenseCuts::WXQSketch;
 
 __global__ void FindCutsK
 (WXQSketch::Entry* __restrict__ cuts, const bst_float* __restrict__ data,
@@ -82,6 +85,36 @@ __global__ void UnpackFeaturesK
   }
 }
 
+/*!
+ * \brief A container that holds the device sketches across all
+ *  sparse page batches which are distributed to different devices.
+ *  As sketches are aggregated by column, the mutex guards
+ *  multiple devices pushing sketch summary for the same column
+ *  across distinct rows.
+ */
+struct SketchContainer {
+  std::vector<DenseCuts::WXQSketch> sketches_;  // NOLINT
+  std::vector<std::mutex> col_locks_; // NOLINT
+  static constexpr int kOmpNumColsParallelizeLimit = 1000;
+
+  SketchContainer(const tree::TrainParam &param, DMatrix *dmat) :
+    col_locks_(dmat->Info().num_col_) {
+    const MetaInfo &info = dmat->Info();
+    // Initialize Sketches for this dmatrix
+    sketches_.resize(info.num_col_);
+#pragma omp parallel for schedule(static) if (info.num_col_ > kOmpNumColsParallelizeLimit)
+    for (int icol = 0; icol < info.num_col_; ++icol) {
+      sketches_[icol].Init(info.num_row_, 1.0 / (8 * param.max_bin));
+    }
+  }
+
+  // Prevent copying/assigning/moving this as its internals can't be assigned/copied/moved
+  SketchContainer(const SketchContainer &) = delete;
+  SketchContainer(const SketchContainer &&) = delete;
+  SketchContainer &operator=(const SketchContainer &) = delete;
+  SketchContainer &operator=(const SketchContainer &&) = delete;
+};
+
 // finds quantiles on the GPU
 struct GPUSketcher {
   // manage memory for a single GPU
@@ -94,28 +127,36 @@ struct GPUSketcher {
     size_t n_cuts_{0};
     size_t gpu_batch_nrows_{0};
     bool has_weights_{false};
+    size_t row_stride_{0};
 
     tree::TrainParam param_;
-    std::vector<WXQSketch> sketches_;
-    thrust::device_vector<size_t> row_ptrs_;
-    std::vector<WXQSketch::SummaryContainer> summaries_;
-    thrust::device_vector<Entry> entries_;
-    thrust::device_vector<bst_float> fvalues_;
-    thrust::device_vector<bst_float> feature_weights_;
-    thrust::device_vector<bst_float> fvalues_cur_;
-    thrust::device_vector<WXQSketch::Entry> cuts_d_;
+    SketchContainer *sketch_container_;
+    dh::device_vector<size_t> row_ptrs_;
+    dh::device_vector<Entry> entries_;
+    dh::device_vector<bst_float> fvalues_;
+    dh::device_vector<bst_float> feature_weights_;
+    dh::device_vector<bst_float> fvalues_cur_;
+    dh::device_vector<WXQSketch::Entry> cuts_d_;
     thrust::host_vector<WXQSketch::Entry> cuts_h_;
-    thrust::device_vector<bst_float> weights_;
-    thrust::device_vector<bst_float> weights2_;
+    dh::device_vector<bst_float> weights_;
+    dh::device_vector<bst_float> weights2_;
     std::vector<size_t> n_cuts_cur_;
-    thrust::device_vector<size_t> num_elements_;
-    thrust::device_vector<char> tmp_storage_;
+    dh::device_vector<size_t> num_elements_;
+    dh::device_vector<char> tmp_storage_;
 
    public:
     DeviceShard(int device, bst_uint row_begin, bst_uint row_end,
-                tree::TrainParam param) :
+                tree::TrainParam param, SketchContainer *sketch_container) :
       device_(device), row_begin_(row_begin), row_end_(row_end),
-      n_rows_(row_end - row_begin), param_(std::move(param)) {
+      n_rows_(row_end - row_begin), param_(std::move(param)), sketch_container_(sketch_container) {
+    }
+
+    ~DeviceShard() {
+      dh::safe_cuda(cudaSetDevice(device_));
+    }
+
+    inline size_t GetRowStride() const {
+       return row_stride_;
     }
 
     void Init(const SparsePage& row_batch, const MetaInfo& info, int gpu_batch_nrows) {
@@ -136,20 +177,10 @@ struct GPUSketcher {
         gpu_batch_nrows_ = n_rows_;
       }
 
-      // initialize sketches
-      sketches_.resize(num_cols_);
-      summaries_.resize(num_cols_);
       constexpr int kFactor = 8;
       double eps = 1.0 / (kFactor * param_.max_bin);
       size_t dummy_nlevel;
-      WXQSketch::LimitSizeLevel(row_batch.Size(), eps, &dummy_nlevel, &n_cuts_);
-      // double ncuts to be the same as the number of values
-      // in the temporary buffers of the sketches
-      n_cuts_ *= 2;
-      for (int icol = 0; icol < num_cols_; ++icol) {
-        sketches_[icol].Init(row_batch.Size(), eps);
-        summaries_[icol].Reserve(n_cuts_);
-      }
+      WXQSketch::LimitSizeLevel(gpu_batch_nrows_, eps, &dummy_nlevel, &n_cuts_);
 
       // allocate necessary GPU buffers
       dh::safe_cuda(cudaSetDevice(device_));
@@ -270,7 +301,7 @@ struct GPUSketcher {
       } else if (n_cuts_cur_[icol] > 0) {
         // if more elements than cuts: use binary search on cumulative weights
         int block = 256;
-        FindCutsK<<<dh::DivRoundUp(n_cuts_cur_[icol], block), block>>>
+        FindCutsK<<<common::DivRoundUp(n_cuts_cur_[icol], block), block>>>
           (cuts_d_.data().get() + icol * n_cuts_, fvalues_cur_.data().get(),
            weights2_.data().get(), n_unique, n_cuts_cur_[icol]);
         dh::safe_cuda(cudaGetLastError());  // NOLINT
@@ -306,11 +337,14 @@ struct GPUSketcher {
 
       // unpack the features; also unpack weights if present
       thrust::fill(fvalues_.begin(), fvalues_.end(), NAN);
-      thrust::fill(feature_weights_.begin(), feature_weights_.end(), NAN);
+      if (has_weights_) {
+        thrust::fill(feature_weights_.begin(), feature_weights_.end(), NAN);
+      }
 
-      dim3 block3(64, 4, 1);
-      dim3 grid3(dh::DivRoundUp(batch_nrows, block3.x),
-                 dh::DivRoundUp(num_cols_, block3.y), 1);
+      dim3 block3(16, 64, 1);
+      // NOTE: This will typically support ~ 4M features - 64K*64
+      dim3 grid3(common::DivRoundUp(batch_nrows, block3.x),
+                 common::DivRoundUp(num_cols_, block3.y), 1);
       UnpackFeaturesK<<<grid3, block3>>>
         (fvalues_.data().get(), has_weights_ ? feature_weights_.data().get() : nullptr,
          row_ptrs_.data().get() + batch_row_begin,
@@ -324,10 +358,32 @@ struct GPUSketcher {
 
       // add cuts into sketches
       thrust::copy(cuts_d_.begin(), cuts_d_.end(), cuts_h_.begin());
+#pragma omp parallel for schedule(static) \
+      if (num_cols_ > SketchContainer::kOmpNumColsParallelizeLimit) // NOLINT
       for (int icol = 0; icol < num_cols_; ++icol) {
-        summaries_[icol].MakeFromSorted(&cuts_h_[n_cuts_ * icol], n_cuts_cur_[icol]);
-        sketches_[icol].PushSummary(summaries_[icol]);
+        WXQSketch::SummaryContainer summary;
+        summary.Reserve(n_cuts_);
+        summary.MakeFromSorted(&cuts_h_[n_cuts_ * icol], n_cuts_cur_[icol]);
+
+        std::lock_guard<std::mutex> lock(sketch_container_->col_locks_[icol]);
+        sketch_container_->sketches_[icol].PushSummary(summary);
       }
+    }
+
+    void ComputeRowStride() {
+      // Find the row stride for this batch
+      auto row_iter = row_ptrs_.begin();
+      // Functor for finding the maximum row size for this batch
+      auto get_size = [=] __device__(size_t row) {
+        return row_iter[row + 1] - row_iter[row];
+      }; // NOLINT
+
+      auto counting = thrust::make_counting_iterator(size_t(0));
+      using TransformT = thrust::transform_iterator<decltype(get_size),
+                                                    decltype(counting), size_t>;
+      TransformT row_size_iter = TransformT(counting, get_size);
+      row_stride_ = thrust::reduce(row_size_iter, row_size_iter + n_rows_, 0,
+                                   thrust::maximum<size_t>());
     }
 
     void Sketch(const SparsePage& row_batch, const MetaInfo& info) {
@@ -337,67 +393,80 @@ struct GPUSketcher {
       row_ptrs_.resize(n_rows_ + 1);
       thrust::copy(offset_vec.data() + row_begin_,
                    offset_vec.data() + row_end_ + 1, row_ptrs_.begin());
-      size_t gpu_nbatches = dh::DivRoundUp(n_rows_, gpu_batch_nrows_);
+      size_t gpu_nbatches = common::DivRoundUp(n_rows_, gpu_batch_nrows_);
       for (size_t gpu_batch = 0; gpu_batch < gpu_nbatches; ++gpu_batch) {
         SketchBatch(row_batch, info, gpu_batch);
       }
     }
-
-    void GetSummary(WXQSketch::SummaryContainer *summary, size_t const icol) {
-      sketches_[icol].GetSummary(summary);
-    }
   };
 
-  void Sketch(const SparsePage& batch, const MetaInfo& info,
-              HistCutMatrix* hmat, int gpu_batch_nrows) {
+  void SketchBatch(const SparsePage &batch, const MetaInfo &info) {
+    GPUDistribution dist =
+      GPUDistribution::Block(GPUSet::All(generic_param_.gpu_id, generic_param_.n_gpus,
+                                         batch.Size()));
+
     // create device shards
-    shards_.resize(dist_.Devices().Size());
+    shards_.resize(dist.Devices().Size());
     dh::ExecuteIndexShards(&shards_, [&](int i, std::unique_ptr<DeviceShard>& shard) {
-        size_t start = dist_.ShardStart(info.num_row_, i);
-        size_t size = dist_.ShardSize(info.num_row_, i);
+        size_t start = dist.ShardStart(batch.Size(), i);
+        size_t size = dist.ShardSize(batch.Size(), i);
         shard = std::unique_ptr<DeviceShard>(
-            new DeviceShard(dist_.Devices().DeviceId(i),
-                            start, start + size, param_));
+            new DeviceShard(dist.Devices().DeviceId(i), start,
+                            start + size, param_, sketch_container_.get()));
       });
 
     // compute sketches for each shard
     dh::ExecuteIndexShards(&shards_,
                            [&](int idx, std::unique_ptr<DeviceShard>& shard) {
-                             shard->Init(batch, info, gpu_batch_nrows);
+                             shard->Init(batch, info, gpu_batch_nrows_);
                              shard->Sketch(batch, info);
+                             shard->ComputeRowStride();
                            });
 
-    // merge the sketches from all shards
-    // TODO(canonizer): do it in a tree-like reduction
-    int num_cols = info.num_col_;
-    std::vector<WXQSketch> sketches(num_cols);
-    WXQSketch::SummaryContainer summary;
-    for (int icol = 0; icol < num_cols; ++icol) {
-      sketches[icol].Init(batch.Size(), 1.0 / (8 * param_.max_bin));
-      for (auto &shard : shards_) {
-        shard->GetSummary(&summary, icol);
-        sketches[icol].PushSummary(summary);
-      }
+    // compute row stride across all shards
+    for (const auto &shard : shards_) {
+      row_stride_ = std::max(row_stride_, shard->GetRowStride());
     }
-
-    hmat->Init(&sketches, param_.max_bin);
   }
 
-  GPUSketcher(tree::TrainParam param, size_t n_rows) : param_(std::move(param)) {
-    dist_ = GPUDistribution::Block(GPUSet::All(param_.gpu_id, param_.n_gpus, n_rows));
+  GPUSketcher(const tree::TrainParam &param, const GenericParameter &generic_param, int gpu_nrows)
+    : param_(param), generic_param_(generic_param), gpu_batch_nrows_(gpu_nrows), row_stride_(0) {
+  }
+
+  /* Builds the sketches on the GPU for the dmatrix and returns the row stride
+   * for the entire dataset */
+  size_t Sketch(DMatrix *dmat, DenseCuts *hmat) {
+    const MetaInfo &info = dmat->Info();
+
+    row_stride_ = 0;
+    sketch_container_.reset(new SketchContainer(param_, dmat));
+    for (const auto &batch : dmat->GetRowBatches()) {
+      this->SketchBatch(batch, info);
+    }
+
+    hmat->Init(&sketch_container_.get()->sketches_, param_.max_bin);
+
+    return row_stride_;
   }
 
  private:
   std::vector<std::unique_ptr<DeviceShard>> shards_;
-  tree::TrainParam param_;
-  GPUDistribution dist_;
+  const tree::TrainParam &param_;
+  const GenericParameter &generic_param_;
+  int gpu_batch_nrows_;
+  size_t row_stride_;
+  std::unique_ptr<SketchContainer> sketch_container_;
 };
 
-void DeviceSketch
-  (const SparsePage& batch, const MetaInfo& info,
-   const tree::TrainParam& param, HistCutMatrix* hmat, int gpu_batch_nrows) {
-  GPUSketcher sketcher(param, info.num_row_);
-  sketcher.Sketch(batch, info, hmat, gpu_batch_nrows);
+size_t DeviceSketch
+  (const tree::TrainParam &param, const GenericParameter &learner_param, int gpu_batch_nrows,
+   DMatrix *dmat, HistogramCuts *hmat) {
+  GPUSketcher sketcher(param, learner_param, gpu_batch_nrows);
+  // We only need to return the result in HistogramCuts container, so it is safe to
+  // use a pointer of local HistogramCutsDense
+  DenseCuts dense_cuts(hmat);
+  auto res = sketcher.Sketch(dmat, &dense_cuts);
+  return res;
 }
 
 }  // namespace common

@@ -7,6 +7,7 @@
 #pragma once
 #include <xgboost/base.h>
 #include <xgboost/data.h>
+#include <xgboost/generic_parameters.h>
 
 #include <functional>
 #include <memory>
@@ -38,6 +39,9 @@ namespace xgboost {
  */
 
 class Predictor {
+ protected:
+  GenericParameter const* learner_param_;
+
  public:
   virtual ~Predictor() = default;
 
@@ -51,8 +55,8 @@ class Predictor {
    * \param cache Vector of DMatrix's to be used in prediction.
    */
 
-  virtual void Init(const std::vector<std::pair<std::string, std::string>>& cfg,
-                    const std::vector<std::shared_ptr<DMatrix>>& cache);
+  virtual void Configure(const std::vector<std::pair<std::string, std::string>>& cfg,
+                         const std::vector<std::shared_ptr<DMatrix>>& cache);
 
   /**
    * \brief Generate batch predictions for a given feature matrix. May use
@@ -170,7 +174,7 @@ class Predictor {
    *
    */
 
-  static Predictor* Create(std::string name);
+  static Predictor* Create(std::string const& name, GenericParameter const*);
 
  protected:
   /**
@@ -187,7 +191,6 @@ class Predictor {
    * \brief Map of matrices and associated cached predictions to facilitate
    * storing and looking up predictions.
    */
-
   std::unordered_map<DMatrix*, PredictionCacheEntry> cache_;
 };
 

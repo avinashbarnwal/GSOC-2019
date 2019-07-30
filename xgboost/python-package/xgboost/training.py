@@ -49,7 +49,7 @@ def _train_internal(params, dtrain,
 
     # Distributed code: Load the checkpoint from rabit.
     version = bst.load_rabit_checkpoint()
-    assert(rabit.get_world_size() != 1 or version == 0)
+    assert rabit.get_world_size() != 1 or version == 0
     rank = rabit.get_rank()
     start_iteration = int(version / 2)
     nboost += start_iteration
@@ -75,12 +75,12 @@ def _train_internal(params, dtrain,
             bst.save_rabit_checkpoint()
             version += 1
 
-        assert(rabit.get_world_size() == 1 or version == rabit.version_number())
+        assert rabit.get_world_size() == 1 or version == rabit.version_number()
 
         nboost += 1
         evaluation_result_list = []
         # check evaluation result.
-        if len(evals) != 0:
+        if evals:
             bst_eval_set = bst.eval_set(evals, i, feval)
             if isinstance(bst_eval_set, STRING_TYPES):
                 msg = bst_eval_set
@@ -127,8 +127,8 @@ def train(params, dtrain, num_boost_round=10, evals=(), obj=None, feval=None,
     num_boost_round: int
         Number of boosting iterations.
     evals: list of pairs (DMatrix, string)
-        List of items to be evaluated during training, this allows user to watch
-        performance on the validation set.
+        List of validation sets for which metrics will evaluated during training.
+        Validation metrics will help us track the performance of the model.
     obj : function
         Customized objective function.
     feval : function
@@ -136,11 +136,14 @@ def train(params, dtrain, num_boost_round=10, evals=(), obj=None, feval=None,
     maximize : bool
         Whether to maximize feval.
     early_stopping_rounds: int
-        Activates early stopping. Validation error needs to decrease at least
+        Activates early stopping. Validation metric needs to improve at least once in
         every **early_stopping_rounds** round(s) to continue training.
         Requires at least one item in **evals**.
-        If there's more than one, will use the last.
-        Returns the model from the last iteration (not the best one).
+        The method returns the model from the last iteration (not the best one).
+        If there's more than one item in **evals**, the last entry will be used
+        for early stopping.
+        If there's more than one metric in the **eval_metric** parameter given in
+        **params**, the last metric will be used for early stopping.
         If early stopping occurs, the model will have three additional fields:
         ``bst.best_score``, ``bst.best_iteration`` and ``bst.best_ntree_limit``.
         (Use ``bst.best_ntree_limit`` to get the correct value if
@@ -234,6 +237,56 @@ class CVPack(object):
         return self.bst.eval_set(self.watchlist, iteration, feval)
 
 
+def groups_to_rows(groups, boundaries):
+    """
+    Given group row boundaries, convert ground indexes to row indexes
+    :param groups: list of groups for testing
+    :param boundaries: rows index limits of each group
+    :return: row in group
+    """
+    return np.concatenate([np.arange(boundaries[g], boundaries[g+1]) for g in groups])
+
+
+def mkgroupfold(dall, nfold, param, evals=(), fpreproc=None, shuffle=True):
+    """
+    Make n folds for cross-validation maintaining groups
+    :return: cross-validation folds
+    """
+    # we have groups for pairwise ranking... get a list of the group indexes
+    group_boundaries = dall.get_uint_info('group_ptr')
+    group_sizes = np.diff(group_boundaries)
+
+    if shuffle is True:
+        idx = np.random.permutation(len(group_sizes))
+    else:
+        idx = np.arange(len(group_sizes))
+    # list by fold of test group indexes
+    out_group_idset = np.array_split(idx, nfold)
+    # list by fold of train group indexes
+    in_group_idset = [np.concatenate([out_group_idset[i] for i in range(nfold) if k != i])
+                      for k in range(nfold)]
+    # from the group indexes, convert them to row indexes
+    in_idset = [groups_to_rows(in_groups, group_boundaries) for in_groups in in_group_idset]
+    out_idset = [groups_to_rows(out_groups, group_boundaries) for out_groups in out_group_idset]
+
+    # build the folds by taking the appropriate slices
+    ret = []
+    for k in range(nfold):
+        # perform the slicing using the indexes determined by the above methods
+        dtrain = dall.slice(in_idset[k], allow_groups=True)
+        dtrain.set_group(group_sizes[in_group_idset[k]])
+        dtest = dall.slice(out_idset[k], allow_groups=True)
+        dtest.set_group(group_sizes[out_group_idset[k]])
+        # run preprocessing on the data set if needed
+        if fpreproc is not None:
+            dtrain, dtest, tparam = fpreproc(dtrain, dtest, param.copy())
+        else:
+            tparam = param
+        plst = list(tparam.items()) + [('eval_metric', itm) for itm in evals]
+        ret.append(CVPack(dtrain, dtest, plst))
+    return ret
+
+
 def mknfold(dall, nfold, param, seed, evals=(), fpreproc=None, stratified=False,
             folds=None, shuffle=True):
     """
@@ -243,16 +296,17 @@ def mknfold(dall, nfold, param, seed, evals=(), fpreproc=None, stratified=False,
     np.random.seed(seed)
 
     if stratified is False and folds is None:
-        # Do standard k-fold cross validation
+        # Do standard k-fold cross validation. Automatically determine the folds.
+        if len(dall.get_uint_info('group_ptr')) > 1:
+            return mkgroupfold(dall, nfold, param, evals=evals, fpreproc=fpreproc, shuffle=shuffle)
+
         if shuffle is True:
             idx = np.random.permutation(dall.num_row())
         else:
             idx = np.arange(dall.num_row())
         out_idset = np.array_split(idx, nfold)
-        in_idset = [
-            np.concatenate([out_idset[i] for i in range(nfold) if k != i])
-            for k in range(nfold)
-        ]
+        in_idset = [np.concatenate([out_idset[i] for i in range(nfold) if k != i])
+                    for k in range(nfold)]
     elif folds is not None:
         # Use user specified custom split using indices
         try:
@@ -274,6 +328,7 @@ def mknfold(dall, nfold, param, seed, evals=(), fpreproc=None, stratified=False,
 
     ret = []
     for k in range(nfold):
+        # perform the slicing using the indexes determined by the above methods
         dtrain = dall.slice(in_idset[k])
         dtest = dall.slice(out_idset[k])
         # run preprocessing on the data set if needed
@@ -300,16 +355,16 @@ def aggcv(rlist):
     for line in rlist:
         arr = line.split()
         assert idx == arr[0]
-        for it in arr[1:]:
+        for metric_idx, it in enumerate(arr[1:]):
             if not isinstance(it, STRING_TYPES):
                 it = it.decode()
             k, v = it.split(':')
-            if k not in cvmap:
-                cvmap[k] = []
-            cvmap[k].append(float(v))
+            if (metric_idx, k) not in cvmap:
+                cvmap[(metric_idx, k)] = []
+            cvmap[(metric_idx, k)].append(float(v))
     msg = idx
     results = []
-    for k, v in sorted(cvmap.items(), key=lambda x: (x[0].startswith('test'), x[0])):
+    for (metric_idx, k), v in sorted(cvmap.items(), key=lambda x: x[0][0]):
         v = np.array(v)
         if not isinstance(msg, STRING_TYPES):
             msg = msg.decode()
@@ -353,9 +408,12 @@ def cv(params, dtrain, num_boost_round=10, nfold=3, stratified=False, folds=None
     maximize : bool
         Whether to maximize feval.
     early_stopping_rounds: int
-        Activates early stopping. CV error needs to decrease at least
-        every <early_stopping_rounds> round(s) to continue.
-        Last entry in evaluation history is the one from best iteration.
+        Activates early stopping. Cross-Validation metric (average of validation
+        metric computed over CV folds) needs to improve at least once in
+        every **early_stopping_rounds** round(s) to continue training.
+        The last entry in the evaluation history will represent the best iteration.
+        If there's more than one metric in the **eval_metric** parameter given in
+        **params**, the last metric will be used for early stopping.
     fpreproc : function
         Preprocessing function that takes (dtrain, dtest, param) and returns
         transformed versions of those.
@@ -402,7 +460,7 @@ def cv(params, dtrain, num_boost_round=10, nfold=3, stratified=False, folds=None
     else:
         params = dict((k, v) for k, v in params.items())
 
-    if len(metrics) == 0 and 'eval_metric' in params:
+    if (not metrics) and 'eval_metric' in params:
         if isinstance(params['eval_metric'], list):
             metrics = params['eval_metric']
         else:
@@ -462,7 +520,7 @@ def cv(params, dtrain, num_boost_round=10, nfold=3, stratified=False, folds=None
                                rank=0,
                                evaluation_result_list=res))
         except EarlyStopException as e:
-            for k in results.keys():
+            for k in results:
                 results[k] = results[k][:(e.best_iteration + 1)]
             break
     if as_pandas:

@@ -47,6 +47,12 @@ class MetaInfo {
   uint64_t num_nonzero_{0};
   /*! \brief label of each instance */
   HostDeviceVector<bst_float> labels_;
+  /*! \brief lower bound label of each instance; used for survival analysis,
+   *         where labels are left-, right- or interval-censored. */
+  HostDeviceVector<bst_float> labels_lower_bound_;
+  /*! \brief upper bound label of each instance; used for survival analysis,
+   *         where labels are left-, right- or interval-censored. */
+  HostDeviceVector<bst_float> labels_upper_bound_;
   /*!
    * \brief specified root index of each instance,
    *  can be used for multi task setting
@@ -68,9 +74,11 @@ class MetaInfo {
    */
   HostDeviceVector<bst_float> base_margin_;
   /*! \brief version flag, used to check version of this info */
-  static const int kVersion = 2;
-  /*! \brief version that introduced qid field */
+  static const int kVersion = 3;
+  /*! \brief version that introduced field qids_ */
   static const int kVersionQidAdded = 2;
+  /*! \brief version that introduced fields labels_lower_bound_, labels_upper_bound_ */
+  static const int kVersionBounedLabelAdded = 3;
   /*! \brief default constructor */
   MetaInfo()  = default;
   /*!
@@ -265,17 +273,7 @@ class SparsePage {
    * \brief Push one instance into page
    *  \param inst an instance row
    */
-  inline void Push(const Inst &inst) {
-    auto& data_vec = data.HostVector();
-    auto& offset_vec = offset.HostVector();
-    offset_vec.push_back(offset_vec.back() + inst.size());
-    size_t begin = data_vec.size();
-    data_vec.resize(begin + inst.size());
-    if (inst.size() != 0) {
-      std::memcpy(dmlc::BeginPtr(data_vec) + begin, inst.data(),
-                  sizeof(Entry) * inst.size());
-    }
-  }
+  void Push(const Inst &inst);
 
   size_t Size() { return offset.Size() - 1; }
 };
@@ -284,6 +282,7 @@ class BatchIteratorImpl {
  public:
   virtual ~BatchIteratorImpl() {}
   virtual BatchIteratorImpl* Clone() = 0;
+  virtual SparsePage& operator*() = 0;
   virtual const SparsePage& operator*() const = 0;
   virtual void operator++() = 0;
   virtual bool AtEnd() const = 0;
@@ -305,6 +304,11 @@ class BatchIterator {
   void operator++() {
     CHECK(impl_ != nullptr);
     ++(*impl_);
+  }
+
+  SparsePage& operator*() {
+    CHECK(impl_ != nullptr);
+    return *(*impl_);
   }
 
   const SparsePage& operator*() const {
@@ -433,12 +437,15 @@ class DMatrix {
    * \param load_row_split Flag to read in part of rows, divided among the workers in distributed mode.
    * \param file_format The format type of the file, used for dmlc::Parser::Create.
    *   By default "auto" will be able to load in both local binary file.
+   * \param page_size Page size for external memory.
    * \return The created DMatrix.
    */
   static DMatrix* Load(const std::string& uri,
                        bool silent,
                        bool load_row_split,
-                       const std::string& file_format = "auto");
+                       const std::string& file_format = "auto",
+                       const size_t page_size = kPageSize);
+
   /*!
    * \brief create a new DMatrix, by wrapping a row_iterator, and meta info.
    * \param source The source iterator of the data, the create function takes ownership of the source.
@@ -454,6 +461,7 @@ class DMatrix {
    * \param parser The input data parser
    * \param cache_prefix The path to prefix of temporary cache file of the DMatrix when used in external memory mode.
    *     This can be nullptr for common cases, and in-memory mode will be used.
+   * \param page_size Page size for external memory.
    * \sa dmlc::Parser
    * \note dmlc-core provides efficient distributed data parser for libsvm format.
    *  User can create and register customized parser to load their own format using DMLC_REGISTER_DATA_PARSER.
@@ -461,7 +469,11 @@ class DMatrix {
    * \return A created DMatrix.
    */
   static DMatrix* Create(dmlc::Parser<uint32_t>* parser,
-                         const std::string& cache_prefix = "");
+                         const std::string& cache_prefix = "",
+                         const size_t page_size = kPageSize);
+
+  /*! \brief page size 32 MB */
+  static const size_t kPageSize = 32UL << 20UL;
 };
 
 // implementation of inline functions
