@@ -122,6 +122,9 @@ Code Below
   Things to ask?
   
   Q. What is the use of DMLC_REGISTRY_FILE_TAG(survival_metric)?
-  Ans:- 
+  Ans:- This is macro.
+  
+  Q. We need to set pythonpath before running jupyter notebook everytime?
+  Ans:- export PYTHONPATH=/path/to/xgboost/python-package.
   
   
