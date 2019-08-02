@@ -332,24 +332,28 @@ class AFTObj : public ObjFunction {
                                                 param_.aft_sigma, param_.aft_noise_distribution);
         second_order_grad = hessian_uncensored(y_lower[i], y_higher[i], yhat[i],
                                                param_.aft_sigma, param_.aft_noise_distribution);
+        std::cout<<first_order_grad<<second_order_grad<<std::endl;
       } else if (!std::isinf(y_lower[i]) && !std::isinf(y_higher[i])) {
         event = AFTEventType::kIntervalCensored;
         first_order_grad  = grad_interval(y_lower[i], y_higher[i], yhat[i],
                                               param_.aft_sigma, param_.aft_noise_distribution);
         second_order_grad = hessian_interval(y_lower[i], y_higher[i], yhat[i],
                                              param_.aft_sigma, param_.aft_noise_distribution);
+        std::cout<<first_order_grad<<second_order_grad<<std::endl;
       } else if (std::isinf(y_lower[i])){
         event = AFTEventType::kLeftCensored;
         first_order_grad  = grad_left(y_lower[i], y_higher[i], yhat[i],
                                           param_.aft_sigma, param_.aft_noise_distribution);
         second_order_grad = hessian_left(y_lower[i], y_higher[i], yhat[i],
                                          param_.aft_sigma, param_.aft_noise_distribution);
+        std::cout<<first_order_grad<<second_order_grad<<std::endl;
       } else if (std::isinf(y_higher[i])) {
         event = AFTEventType::kRightCensored;
         first_order_grad  = grad_right(y_lower[i], y_higher[i], yhat[i],
                                            param_.aft_sigma, param_.aft_noise_distribution);
         second_order_grad = hessian_right(y_lower[i], y_higher[i], yhat[i],
                                           param_.aft_sigma, param_.aft_noise_distribution);
+        std::cout<<first_order_grad<<second_order_grad<<std::endl;
       } else {
         LOG(FATAL) << "AFTObj: Could not determine event type: y_lower = " << y_lower[i]
                    << ", y_higher = " << y_higher[i];
