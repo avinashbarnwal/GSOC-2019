@@ -76,7 +76,7 @@ template <typename GradientSumT>
 void BuildGidx(DeviceShard<GradientSumT>* shard, int n_rows, int n_cols,
                bst_float sparsity=0) {
   auto dmat = CreateDMatrix(n_rows, n_cols, sparsity, 3);
-  const SparsePage& batch = *(*dmat)->GetRowBatches().begin();
+  const SparsePage& batch = *(*dmat)->GetBatches<xgboost::SparsePage>().begin();
 
   HistogramCutsWrapper cmat;
   cmat.SetPtrs({0, 3, 6, 9, 12, 15, 18, 21, 24});
@@ -414,14 +414,6 @@ void TestHistogramIndexImpl(int n_gpus) {
 TEST(GpuHist, TestHistogramIndex) {
   TestHistogramIndexImpl(1);
 }
-
-#if defined(XGBOOST_USE_NCCL)
-TEST(GpuHist, MGPU_TestHistogramIndex) {
-  auto devices = GPUSet::AllVisible();
-  CHECK_GT(devices.Size(), 1);
-  TestHistogramIndexImpl(-1);
-}
-#endif
 
 }  // namespace tree
 }  // namespace xgboost

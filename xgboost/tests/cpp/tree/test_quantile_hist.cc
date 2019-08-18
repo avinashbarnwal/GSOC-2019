@@ -65,7 +65,7 @@ class QuantileHistMock : public QuantileHistMaker {
       ASSERT_EQ(gmat.row_ptr.size(), num_row + 1);
       ASSERT_LT(*std::max_element(gmat.index.begin(), gmat.index.end()),
                 gmat.cut.Ptrs().back());
-      for (const auto& batch : p_fmat->GetRowBatches()) {
+      for (const auto& batch : p_fmat->GetBatches<xgboost::SparsePage>()) {
         for (size_t i = 0; i < batch.Size(); ++i) {
           const size_t rid = batch.base_rowid + i;
           ASSERT_LT(rid, num_row);
@@ -225,6 +225,14 @@ class QuantileHistMock : public QuantileHistMaker {
 
       delete dmat;
     }
+
+    void TestEvaluateSplitParallel(const GHistIndexBlockMatrix &quantile_index_block,
+                                   const RegTree &tree) {
+      omp_set_num_threads(2);
+      TestEvaluateSplit(quantile_index_block, tree);
+      omp_set_num_threads(1);
+    }
+
   };
 
   int static constexpr kNRows = 8, kNCols = 16;

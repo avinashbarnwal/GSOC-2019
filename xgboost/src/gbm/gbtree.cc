@@ -146,13 +146,6 @@ void GBTree::ConfigureUpdaters(const std::map<std::string, std::string>& cfg) {
           "single updater grow_quantile_histmaker.";
       tparam_.updater_seq = "grow_quantile_histmaker";
       break;
-    case TreeMethod::kGPUExact:
-      this->AssertGPUSupport();
-      tparam_.updater_seq = "grow_gpu,prune";
-      if (cfg.find("predictor") == cfg.cend()) {
-        tparam_.predictor = "gpu_predictor";
-      }
-      break;
     case TreeMethod::kGPUHist:
       this->AssertGPUSupport();
       tparam_.updater_seq = "grow_gpu_hist";
@@ -371,7 +364,7 @@ class Dart : public GBTree {
     CHECK_EQ(preds.size(), p_fmat->Info().num_row_ * num_group);
     // start collecting the prediction
     auto* self = static_cast<Derived*>(this);
-    for (const auto &batch : p_fmat->GetRowBatches()) {
+    for (const auto &batch : p_fmat->GetBatches<SparsePage>()) {
       constexpr int kUnroll = 8;
       const auto nsize = static_cast<bst_omp_uint>(batch.Size());
       const bst_omp_uint rest = nsize % kUnroll;

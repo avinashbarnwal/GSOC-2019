@@ -637,7 +637,7 @@ class ColMaker: public TreeUpdater {
                           DMatrix *p_fmat,
                           RegTree *p_tree) {
       auto feat_set = column_sampler_.GetFeatureSet(depth);
-      for (const auto &batch : p_fmat->GetSortedColumnBatches()) {
+      for (const auto &batch : p_fmat->GetBatches<SortedCSCPage>()) {
         this->UpdateSolution(batch, feat_set->HostVector(), gpair, p_fmat);
       }
       // after this each thread's stemp will get the best candidates, aggregate results
@@ -716,7 +716,7 @@ class ColMaker: public TreeUpdater {
       }
       std::sort(fsplits.begin(), fsplits.end());
       fsplits.resize(std::unique(fsplits.begin(), fsplits.end()) - fsplits.begin());
-      for (const auto &batch : p_fmat->GetSortedColumnBatches()) {
+      for (const auto &batch : p_fmat->GetBatches<SortedCSCPage>()) {
         for (auto fid : fsplits) {
           auto col = batch[fid];
           const auto ndata = static_cast<bst_omp_uint>(col.size());
@@ -817,9 +817,6 @@ class DistColMaker : public ColMaker {
         this->position_[ridx] = nid;
       }
     }
-    inline const int* GetLeafPosition() const {
-      return dmlc::BeginPtr(this->position_);
-    }
 
    protected:
     void SetNonDefaultPosition(const std::vector<int> &qexpand, DMatrix *p_fmat,
@@ -846,7 +843,7 @@ class DistColMaker : public ColMaker {
             boolmap_[j] = 0;
         }
       }
-      for (const auto &batch : p_fmat->GetSortedColumnBatches()) {
+      for (const auto &batch : p_fmat->GetBatches<SortedCSCPage>()) {
         for (auto fid : fsplits) {
           auto col = batch[fid];
           const auto ndata = static_cast<bst_omp_uint>(col.size());

@@ -31,13 +31,13 @@ const char* kMaxDeltaStepDefaultValue = "0.7";
 
 inline bool IsFloat(const std::string& str) {
   std::stringstream ss(str);
-  float f;
+  float f{};
   return !((ss >> std::noskipws >> f).rdstate() ^ std::ios_base::eofbit);
 }
 
 inline bool IsInt(const std::string& str) {
   std::stringstream ss(str);
-  int i;
+  int i{};
   return !((ss >> std::noskipws >> i).rdstate() ^ std::ios_base::eofbit);
 }
 
@@ -287,8 +287,12 @@ class LearnerImpl : public Learner {
         metrics_.emplace_back(Metric::Create(name, &generic_param_));
       }
     }
+
     cfg_["num_class"] = common::ToString(mparam_.num_class);
     cfg_["num_feature"] = common::ToString(mparam_.num_feature);
+
+    auto n = tparam_.__DICT__();
+    cfg_.insert(n.cbegin(), n.cend());
 
     gbm_->Configure({cfg_.cbegin(), cfg_.cend()});
     obj_->Configure({cfg_.begin(), cfg_.end()});
@@ -531,9 +535,6 @@ class LearnerImpl : public Learner {
     gbm_->PredictBatch(data, out_preds, ntree_limit);
   }
 
-  // return whether model is already initialized.
-  bool ModelInitialized() const { return configured_; }
-
   void ConfigureObjective(LearnerTrainParam const& old, Args* p_args) {
     if (cfg_.find("num_class") != cfg_.cend() && cfg_.at("num_class") != "0") {
       cfg_["num_output_group"] = cfg_["num_class"];
@@ -579,8 +580,15 @@ class LearnerImpl : public Learner {
     }
     gbm_->Configure(args);
 
-    if (this->gbm_->UseGPU() && cfg_.find("n_gpus") == cfg_.cend()) {
-      generic_param_.n_gpus = 1;
+    if (this->gbm_->UseGPU()) {
+      if (cfg_.find("n_gpus") == cfg_.cend()) {
+        generic_param_.n_gpus = 1;
+      }
+      if (generic_param_.n_gpus != 1) {
+        LOG(FATAL) << "Single process multi-GPU training is no longer supported. "
+                      "Please switch to distributed GPU training with one process per GPU. "
+                      "This can be done using Dask or Spark.";
+      }
     }
   }
 

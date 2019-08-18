@@ -1,8 +1,10 @@
 library(xgboost)
-require(stringr)
 setwd('/Users/avinashbarnwal/Desktop/Personal/GSOC-2019/AFT/')
 
-inputs    = read.table('test/data/neuroblastoma-data-master/data/ATAC_JV_adipose/inputs.csv',sep=",",header=T,stringsAsFactors = FALSE)
+#inputs    = read.table('test/data/neuroblastoma-data-master/data/ATAC_JV_adipose/inputs.csv',sep=",",header=T,stringsAsFactors = FALSE)
+
+inputs    = read.table('https://raw.githubusercontent.com/avinashbarnwal/GSOC-2019/master/AFT/test/data/neuroblastoma-data-master/data/ATAC_JV_adipose/inputs.csv',sep=",",header=T,stringsAsFactors = F)
+
 naColumns = colnames(inputs)[colSums(is.na(inputs))>0]
 inputs    = inputs[ , !(names(inputs) %in% naColumns)]
 #inputs['sequenceID'] = str_trim(inputs['sequenceID'])
@@ -11,7 +13,7 @@ labels     = read.table('test/data/neuroblastoma-data-master/data/ATAC_JV_adipos
 folds      = read.table('test/data/neuroblastoma-data-master/data/ATAC_JV_adipose/cv/equal_labels/folds.csv',sep=",",header=T,stringsAsFactors = FALSE) 
 folds_iter = unique(folds$fold)
 
-for(i in c(1)){
+for(i in folds_iter){
   test_fold    = i
   test_id      = folds[folds$fold==i,'sequenceID']
   train_id     = folds[folds$fold!=i,'sequenceID']

@@ -17,6 +17,14 @@ TEST(Learner, Basic) {
   learner->SetParams(args);
 
   delete mat_ptr;
+
+  auto major = XGBOOST_VER_MAJOR;
+  auto minor = XGBOOST_VER_MINOR;
+  auto patch = XGBOOST_VER_PATCH;
+
+  static_assert(std::is_integral<decltype(major)>::value, "Wrong major version type");
+  static_assert(std::is_integral<decltype(minor)>::value, "Wrong minor version type");
+  static_assert(std::is_integral<decltype(patch)>::value, "Wrong patch version type");
 }
 
 TEST(Learner, CheckGroup) {
@@ -103,6 +111,45 @@ TEST(Learner, Configuration) {
   }
 }
 
+TEST(Learner, ObjectiveParameter) {
+  using Arg = std::pair<std::string, std::string>;
+  size_t constexpr kRows = 10;
+  auto pp_dmat = CreateDMatrix(kRows, 10, 0);
+  auto p_dmat = *pp_dmat;
+
+  std::vector<bst_float> labels(kRows);
+  for (size_t i = 0; i < labels.size(); ++i) {
+    labels[i] = i;
+  }
+  p_dmat->Info().labels_.HostVector() = labels;
+  std::vector<std::shared_ptr<DMatrix>> mat {p_dmat};
+
+  std::unique_ptr<Learner> learner {Learner::Create(mat)};
+  learner->SetParams({Arg{"tree_method", "auto"},
+                      Arg{"objective", "multi:softprob"},
+                      Arg{"num_class", "10"}});
+  learner->UpdateOneIter(0, p_dmat.get());
+  auto attr_names = learner->GetConfigurationArguments();
+  ASSERT_EQ(attr_names.at("objective"), "multi:softprob");
+
+  dmlc::TemporaryDirectory tempdir;
+  const std::string fname = tempdir.path + "/model_para.bst";
+
+  {
+    // Create a scope to close the stream before next read.
+    std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(fname.c_str(), "w"));
+    learner->Save(fo.get());
+  }
+
+  std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(fname.c_str(), "r"));
+  std::unique_ptr<Learner> learner1 {Learner::Create(mat)};
+  learner1->Load(fi.get());
+  auto attr_names1 = learner1->GetConfigurationArguments();
+  ASSERT_EQ(attr_names1.at("objective"), "multi:softprob");
+
+  delete pp_dmat;
+}
+
 #if defined(XGBOOST_USE_CUDA)
 
 TEST(Learner, IO) {
@@ -121,10 +168,10 @@ TEST(Learner, IO) {
   std::unique_ptr<Learner> learner {Learner::Create(mat)};
   learner->SetParams({Arg{"tree_method", "auto"},
                       Arg{"predictor", "gpu_predictor"},
-                      Arg{"n_gpus", "-1"}});
+                      Arg{"n_gpus", "1"}});
   learner->UpdateOneIter(0, p_dmat.get());
   ASSERT_EQ(learner->GetGenericParameter().gpu_id, 0);
-  ASSERT_EQ(learner->GetGenericParameter().n_gpus, -1);
+  ASSERT_EQ(learner->GetGenericParameter().n_gpus, 1);
 
   dmlc::TemporaryDirectory tempdir;
   const std::string fname = tempdir.path + "/model.bst";
@@ -159,13 +206,6 @@ TEST(Learner, GPUConfiguration) {
     std::unique_ptr<Learner> learner {Learner::Create(mat)};
     learner->SetParams({Arg{"booster", "gblinear"},
                         Arg{"updater", "gpu_coord_descent"}});
-    learner->UpdateOneIter(0, p_dmat.get());
-    ASSERT_EQ(learner->GetGenericParameter().gpu_id, 0);
-    ASSERT_EQ(learner->GetGenericParameter().n_gpus, 1);
-  }
-  {
-    std::unique_ptr<Learner> learner {Learner::Create(mat)};
-    learner->SetParams({Arg{"tree_method", "gpu_exact"}});
     learner->UpdateOneIter(0, p_dmat.get());
     ASSERT_EQ(learner->GetGenericParameter().gpu_id, 0);
     ASSERT_EQ(learner->GetGenericParameter().n_gpus, 1);

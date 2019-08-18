@@ -15,6 +15,7 @@
 #include <numeric>
 #include <algorithm>
 #include <string>
+#include <utility>
 #include <vector>
 #include "./base.h"
 #include "../../src/common/span.h"
@@ -65,8 +66,6 @@ class MetaInfo {
   std::vector<bst_uint> group_ptr_;
   /*! \brief weights of each instance, optional */
   HostDeviceVector<bst_float> weights_;
-  /*! \brief session-id of each instance, optional */
-  std::vector<uint64_t> qids_;
   /*!
    * \brief initialized margins,
    * if specified, xgboost will start from this init margin
@@ -75,8 +74,8 @@ class MetaInfo {
   HostDeviceVector<bst_float> base_margin_;
   /*! \brief version flag, used to check version of this info */
   static const int kVersion = 3;
-  /*! \brief version that introduced field qids_ */
-  static const int kVersionQidAdded = 2;
+  /*! \brief version that contains qid field */
+  static const int kVersionWithQid = 2;
   /*! \brief version that introduced fields labels_lower_bound_, labels_upper_bound_ */
   static const int kVersionBounedLabelAdded = 3;
   /*! \brief default constructor */
@@ -278,40 +277,45 @@ class SparsePage {
   size_t Size() { return offset.Size() - 1; }
 };
 
+class CSCPage: public SparsePage {
+ public:
+  CSCPage() : SparsePage() {}
+  explicit CSCPage(SparsePage page) : SparsePage(std::move(page)) {}
+};
+
+class SortedCSCPage : public SparsePage {
+ public:
+  SortedCSCPage() : SparsePage() {}
+  explicit SortedCSCPage(SparsePage page) : SparsePage(std::move(page)) {}
+};
+
+template<typename T>
 class BatchIteratorImpl {
  public:
   virtual ~BatchIteratorImpl() {}
-  virtual BatchIteratorImpl* Clone() = 0;
-  virtual SparsePage& operator*() = 0;
-  virtual const SparsePage& operator*() const = 0;
+  virtual T& operator*() = 0;
+  virtual const T& operator*() const = 0;
   virtual void operator++() = 0;
   virtual bool AtEnd() const = 0;
 };
 
+template<typename T>
 class BatchIterator {
  public:
   using iterator_category = std::forward_iterator_tag;
-  explicit BatchIterator(BatchIteratorImpl* impl) { impl_.reset(impl); }
-
-  BatchIterator(const BatchIterator& other) {
-    if (other.impl_) {
-      impl_.reset(other.impl_->Clone());
-    } else {
-      impl_.reset();
-    }
-  }
+  explicit BatchIterator(BatchIteratorImpl<T>* impl) { impl_.reset(impl); }
 
   void operator++() {
     CHECK(impl_ != nullptr);
     ++(*impl_);
   }
 
-  SparsePage& operator*() {
+  T& operator*() {
     CHECK(impl_ != nullptr);
     return *(*impl_);
   }
 
-  const SparsePage& operator*() const {
+  const T& operator*() const {
     CHECK(impl_ != nullptr);
     return *(*impl_);
   }
@@ -327,17 +331,18 @@ class BatchIterator {
   }
 
  private:
-  std::unique_ptr<BatchIteratorImpl> impl_;
+  std::shared_ptr<BatchIteratorImpl<T>> impl_;
 };
 
+template<typename T>
 class BatchSet {
  public:
-  explicit BatchSet(BatchIterator begin_iter) : begin_iter_(begin_iter) {}
-  BatchIterator begin() { return begin_iter_; }
-  BatchIterator end() { return BatchIterator(nullptr); }
+  explicit BatchSet(BatchIterator<T> begin_iter) : begin_iter_(begin_iter) {}
+  BatchIterator<T> begin() { return begin_iter_; }
+  BatchIterator<T> end() { return BatchIterator<T>(nullptr); }
 
  private:
-  BatchIterator begin_iter_;
+  BatchIterator<T> begin_iter_;
 };
 
 /*!
@@ -347,48 +352,14 @@ class BatchSet {
  *
  *  On distributed setting, usually an customized dmlc::Parser is needed instead.
  */
-class DataSource : public dmlc::DataIter<SparsePage> {
+template<typename T>
+class DataSource : public dmlc::DataIter<T> {
  public:
   /*!
    * \brief Meta information about the dataset
    * The subclass need to be able to load this correctly from data.
    */
   MetaInfo info;
-};
-
-/*!
- * \brief A vector-like structure to represent set of rows.
- * But saves the memory when all rows are in the set (common case in xgb)
- */
-class RowSet {
- public:
-  /*! \return i-th row index */
-  inline bst_uint operator[](size_t i) const;
-  /*! \return the size of the set. */
-  inline size_t Size() const;
-  /*! \brief push the index back to the set */
-  inline void PushBack(bst_uint i);
-  /*! \brief clear the set */
-  inline void Clear();
-  /*!
-   * \brief save rowset to file.
-   * \param fo The file to be saved.
-   */
-  inline void Save(dmlc::Stream* fo) const;
-  /*!
-   * \brief Load rowset from file.
-   * \param fi The file to be loaded.
-   * \return if read is successful.
-   */
-  inline bool Load(dmlc::Stream* fi);
-  /*! \brief constructor */
-  RowSet()  = default;
-
- private:
-  /*! \brief The internal data structure of size */
-  uint64_t size_{0};
-  /*! \brief The internal data structure of row set if not all*/
-  std::vector<bst_uint> rows_;
 };
 
 /*!
@@ -410,11 +381,10 @@ class DMatrix {
   /*! \brief meta information of the dataset */
   virtual const MetaInfo& Info() const = 0;
   /**
-   * \brief Gets row batches. Use range based for loop over BatchSet to access individual batches.
+   * \brief Gets batches. Use range based for loop over BatchSet to access individual batches.
    */
-  virtual BatchSet GetRowBatches() = 0;
-  virtual BatchSet GetSortedColumnBatches() = 0;
-  virtual BatchSet GetColumnBatches() = 0;
+  template<typename T>
+  BatchSet<T> GetBatches();
   // the following are column meta data, should be able to answer them fast.
   /*! \return Whether the data columns single column block. */
   virtual bool SingleColBlock() const = 0;
@@ -453,7 +423,7 @@ class DMatrix {
    *     This can be nullptr for common cases, and in-memory mode will be used.
    * \return a Created DMatrix.
    */
-  static DMatrix* Create(std::unique_ptr<DataSource>&& source,
+  static DMatrix* Create(std::unique_ptr<DataSource<SparsePage>>&& source,
                          const std::string& cache_prefix = "");
   /*!
    * \brief Create a DMatrix by loading data from parser.
@@ -474,50 +444,30 @@ class DMatrix {
 
   /*! \brief page size 32 MB */
   static const size_t kPageSize = 32UL << 20UL;
+
+ protected:
+  virtual BatchSet<SparsePage> GetRowBatches() = 0;
+  virtual BatchSet<CSCPage> GetColumnBatches() = 0;
+  virtual BatchSet<SortedCSCPage> GetSortedColumnBatches() = 0;
 };
 
-// implementation of inline functions
-inline bst_uint RowSet::operator[](size_t i) const {
-  return rows_.size() == 0 ? static_cast<bst_uint>(i) : rows_[i];
+template<>
+inline BatchSet<SparsePage> DMatrix::GetBatches() {
+  return GetRowBatches();
 }
 
-inline size_t RowSet::Size() const {
-  return size_;
+template<>
+inline BatchSet<CSCPage> DMatrix::GetBatches() {
+  return GetColumnBatches();
 }
 
-inline void RowSet::Clear() {
-  rows_.clear(); size_ = 0;
-}
-
-inline void RowSet::PushBack(bst_uint i) {
-  if (rows_.size() == 0) {
-    if (i == size_) {
-      ++size_; return;
-    } else {
-      rows_.resize(size_);
-      for (size_t i = 0; i < size_; ++i) {
-        rows_[i] = static_cast<bst_uint>(i);
-      }
-    }
-  }
-  rows_.push_back(i);
-  ++size_;
-}
-
-inline void RowSet::Save(dmlc::Stream* fo) const {
-  fo->Write(rows_);
-  fo->Write(&size_, sizeof(size_));
-}
-
-inline bool RowSet::Load(dmlc::Stream* fi) {
-  if (!fi->Read(&rows_)) return false;
-  if (rows_.size() != 0) return true;
-  return fi->Read(&size_, sizeof(size_)) == sizeof(size_);
+template<>
+inline BatchSet<SortedCSCPage> DMatrix::GetBatches() {
+  return GetSortedColumnBatches();
 }
 }  // namespace xgboost
 
 namespace dmlc {
 DMLC_DECLARE_TRAITS(is_pod, xgboost::Entry, true);
-DMLC_DECLARE_TRAITS(has_saveload, xgboost::RowSet, true);
 }
 #endif  // XGBOOST_DATA_H_

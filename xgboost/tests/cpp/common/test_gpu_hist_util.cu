@@ -58,7 +58,7 @@ void TestDeviceSketch(const GPUSet& devices, bool use_external_memory) {
 
   // compare the row stride with the one obtained from the dmatrix
   size_t expected_row_stride = 0;
-  for (const auto &batch : dmat->get()->GetRowBatches()) {
+  for (const auto &batch : dmat->get()->GetBatches<xgboost::SparsePage>()) {
     const auto &offset_vec = batch.offset.ConstHostVector();
     for (int i = 1; i <= offset_vec.size() -1; ++i) {
       expected_row_stride = std::max(expected_row_stride, offset_vec[i] - offset_vec[i-1]);
@@ -87,20 +87,6 @@ TEST(gpu_hist_util, DeviceSketch) {
 TEST(gpu_hist_util, DeviceSketch_ExternalMemory) {
   TestDeviceSketch(GPUSet::Range(0, 1), true);
 }
-
-#if defined(XGBOOST_USE_NCCL)
-TEST(gpu_hist_util, MGPU_DeviceSketch) {
-  auto devices = GPUSet::AllVisible();
-  CHECK_GT(devices.Size(), 1);
-  TestDeviceSketch(devices, false);
-}
-
-TEST(gpu_hist_util, MGPU_DeviceSketch_ExternalMemory) {
-  auto devices = GPUSet::AllVisible();
-  CHECK_GT(devices.Size(), 1);
-  TestDeviceSketch(devices, true);
-}
-#endif
 
 }  // namespace common
 }  // namespace xgboost
