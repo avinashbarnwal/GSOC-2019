@@ -9,8 +9,8 @@ naColumns = colnames(inputs)[colSums(is.na(inputs))>0]
 inputs    = inputs[ , !(names(inputs) %in% naColumns)]
 #inputs['sequenceID'] = str_trim(inputs['sequenceID'])
 
-labels     = read.table('test/data/neuroblastoma-data-master/data/ATAC_JV_adipose/outputs.csv',sep=",",header=T,stringsAsFactors = FALSE)
-folds      = read.table('test/data/neuroblastoma-data-master/data/ATAC_JV_adipose/cv/equal_labels/folds.csv',sep=",",header=T,stringsAsFactors = FALSE) 
+labels     = read.table('https://raw.githubusercontent.com/avinashbarnwal/GSOC-2019/master/AFT/test/data/neuroblastoma-data-master/data/ATAC_JV_adipose/outputs.csv',sep=",",header=T,stringsAsFactors = FALSE)
+folds      = read.table('https://raw.githubusercontent.com/avinashbarnwal/GSOC-2019/master/AFT/test/data/neuroblastoma-data-master/data/ATAC_JV_adipose/cv/equal_labels/folds.csv',sep=",",header=T,stringsAsFactors = FALSE) 
 folds_iter = unique(folds$fold)
 
 for(i in folds_iter){
