@@ -48,7 +48,6 @@ for(i in folds_iter){
                     eval_metric  = 'aft-nloglik@normal,1.0',
                     objective  = "aft:survival")
   bst       <- xgb.train(param, dtrain, num_round, watchlist)
-  
 } 
 
 
