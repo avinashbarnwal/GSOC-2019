@@ -158,6 +158,8 @@ void MetaInfo::SetInfo(const char* key, const void* dptr, DataType dtype, size_t
     for (size_t i = 1; i < group_ptr_.size(); ++i) {
       group_ptr_[i] = group_ptr_[i - 1] + group_ptr_[i];
     }
+  } else {
+    LOG(FATAL) << "SetInfo(): key " << key << " not recognized";
   }
 }
 
