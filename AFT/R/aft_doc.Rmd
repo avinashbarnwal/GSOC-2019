@@ -1,13 +1,44 @@
+---
+title: "Accelerated Failure Time in Xgboost"
+author: "Avinash Barnwal"
+date: "8/24/2019"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+options(width=100)
+```
+
+This document is about implementing accelerated failure time model under survival modeling in Xgboost.   
+It supports 3 underlying distributions     - **Normal, Logistic and Extreme.**   
+This works for 3 kind of censored datasets - **Left, Right and Interval censore types.**  
+
+We have used the data present here - [Data Repo](https://github.com/avinashbarnwal/GSOC-2019/tree/master/AFT/test/data/neuroblastoma-data-master/data)   and   
+5 datasets are used -   
+* [ATAC_JV_adipose](https://github.com/avinashbarnwal/GSOC-2019/tree/master/AFT/test/data/neuroblastoma-data-master/data/ATAC_JV_adipose)  
+* [CTCF_TDH_ENCODE](https://github.com/avinashbarnwal/GSOC-2019/tree/master/AFT/test/data/neuroblastoma-data-master/data/CTCF_TDH_ENCODE)  
+* [H3K27ac-H3K4me3_TDHAM_BP](https://github.com/avinashbarnwal/GSOC-2019/tree/master/AFT/test/data/neuroblastoma-data-master/data/H3K27ac-H3K4me3_TDHAM_BP)  
+* [H3K27ac_TDH_some](https://github.com/avinashbarnwal/GSOC-2019/tree/master/AFT/test/data/neuroblastoma-data-master/data/H3K27ac_TDH_some)  
+* [H3K36me3_AM_immune](https://github.com/avinashbarnwal/GSOC-2019/tree/master/AFT/test/data/neuroblastoma-data-master/data/H3K36me3_AM_immune)  
+
+
+**Source of the dataset** - [Data](https://github.com/tdhock/neuroblastoma-data/tree/master/data/)
+
+Note - Here input labels are **survival times not log of survival times.**
+
+We have tested with different sigma ranging from [1,2,5,10,100] and distribution from normal, logistic and extreme.
+
+```{r}
 require(xgboost)
 library(ggplot2)
+```
 
-#ATAC_JV_adipose
-#CTCF_TDH_ENCODE  
-#H3K27ac-H3K4me3_TDHAM_BP  
-#H3K27ac_TDH_some  
-#H3K27me3_RL_cancer 
-
-
+##### Functions to Import Dataset
+```{r}
 data_import <-function(dataname){
   
   filename = paste('https://raw.githubusercontent.com/avinashbarnwal/GSOC-2019/master/AFT/test/data/neuroblastoma-data-master/data/',dataname,'/',sep="")
@@ -17,7 +48,7 @@ data_import <-function(dataname){
   inputs = read.table(inputFileName,sep=",",header=T,stringsAsFactors = F)
   labels = read.table(labelFileName,sep=",",header=T,stringsAsFactors = F)
   folds  = read.table(foldsFileName,sep=",",header=T,stringsAsFactors = F) 
-  
+
   res        = list()
   res$inputs = inputs
   res$labels = labels
@@ -25,7 +56,11 @@ data_import <-function(dataname){
   
   return(res)
 }
+```
 
+##### Function for missing values exclusion and converting log of survival times to survival times.
+
+```{r}
 data_massage <- function(inputs,labels){
   
   naColumns = colnames(inputs)[colSums(is.na(inputs))>0]
@@ -36,9 +71,12 @@ data_massage <- function(inputs,labels){
   res$inputs = inputs
   res$labels = labels
   return(res)
-  
 }
+```
 
+##### Function for getting train and validation datasets.
+
+```{r}
 getXY<-function(foldNo,folds,inputs,labels){
   
   test_id      = folds[folds$fold==foldNo,'sequenceID']
@@ -69,7 +107,11 @@ getXY<-function(foldNo,folds,inputs,labels){
   
   return(res)
 }
+```
 
+##### Function for getting Parameters.
+
+```{r}
 getParam <- function(sigma,distribution,learning_rate){
   eval_metric = paste("aft-nloglik@",distribution,",",sigma,sep="") 
   param       = list(learning_rate=learning_rate, aft_noise_distribution=distribution, 
@@ -78,9 +120,11 @@ getParam <- function(sigma,distribution,learning_rate){
                     objective  = "aft:survival")
   return(param)
 }
+```
 
+##### Function for training models.
 
-
+```{r}
 trainModel <- function(foldNo,X,X_val,y_lower,y_lower_val,y_upper,y_upper_val,param,num_round){
   
   dtrain = xgb.DMatrix(X)
@@ -92,10 +136,30 @@ trainModel <- function(foldNo,X,X_val,y_lower,y_lower_val,y_upper,y_upper_val,pa
   setinfo(dtest,'label_upper_bound', y_upper_val)
   
   watchlist <- list(eval = dtest, train = dtrain)
-  bst       <- xgb.train(param, dtrain, num_round, watchlist, verbose=0)
+  bst       <- xgb.train(param, dtrain, num_round, watchlist,verbose = 0)
+  
   return(bst)
 }
+```
 
+##### Function for creating plots.
+
+```{r}
+createPlot <- function(dataname,data,distribution){
+  
+  title = paste("Data=",dataname,"   Distribution=",distribution,sep="")
+  p     = ggplot(data=data,environment = environment()) +
+          geom_line(aes(x=iter,y=error,colour=type),
+              data=data,size=1)  +
+          ylab("Error")+xlab("Number of Iteration") + ggtitle(title) + facet_grid(fold~sigma ,scales="free",labeller=label_both)
+  print(p)
+}
+
+```
+
+##### Function for creating data
+
+```{r}
 createData <- function(bst,Fold,distribution,sigma){
   colnames(bst$evaluation_log) = c('iter','eval','train')
   df_eval           = data.frame(bst$evaluation_log$iter,bst$evaluation_log$eval)
@@ -115,18 +179,11 @@ createData <- function(bst,Fold,distribution,sigma){
   df = rbind(df_eval,df_train)
   return(df)
 }
+```
 
-#+ theme(legend.position=c(0.8,0.8))
-createPlot <- function(dataname,data,distribution){
-  
-  title = paste("Data=",dataname," Distribution=",distribution,sep="")
-  p     = ggplot(data=data,environment = environment()) +
-          geom_line(aes(x=iter,y=error,colour=type),
-              data=data,size=1)  +
-          ylab("Error")+xlab("Number of Iteration") + ggtitle(title) + facet_grid(fold~sigma ,scales="free",labeller=label_both)
-  print(p)
-}
+##### Function for creating data and plot
 
+```{r}
 createDataPlot <- function(dataName,distribution,folds_iter,sigma_range,folds,inputs,labels,result){
   
   for(sigma in sigma_range) {
@@ -146,29 +203,33 @@ createDataPlot <- function(dataName,distribution,folds_iter,sigma_range,folds,in
   }
   createPlot(dataName,result,distribution)
 }
+```
 
-dataNameRange = c('ATAC_JV_adipose','CTCF_TDH_ENCODE','H3K27ac-H3K4me3_TDHAM_BP','H3K27ac_TDH_some',
-                  'H3K27me3_RL_cancer')
 
-#Set Parameters
-sigma_range         = c(0.1,1,2,5,10,100)
-distribution_range  = c('logistic')
+##### Setting Parameters and Result
+```{r}
+dataNameRange = c('ATAC_JV_adipose','CTCF_TDH_ENCODE','H3K27ac-H3K4me3_TDHAM_BP','H3K27ac_TDH_some','H3K36me3_AM_immune')
+# Set Parameters
+sigma_range         = c(1,2,5,10,100)
+distribution_range  = c('normal','logistic','extreme')
 learning_rate       = 0.1
 num_round           = 200
-folds_iter          = unique(folds$fold)
 
 for(dataName in dataNameRange){
   res      = data_import(dataName)
   inputs   = res$inputs
   labels   = res$labels
   folds    = res$folds
-  
-  result            = data.frame()
-  resDataMassage    = data_massage(inputs,labels)
-  inputs            = resDataMassage$inputs
-  labels            = resDataMassage$labels
-  
+  result         = data.frame()
+  resDataMassage = data_massage(inputs,labels)
+  inputs         = resDataMassage$inputs
+  labels         = resDataMassage$labels
+  folds_iter     = unique(folds$fold)
   for(distribution in distribution_range){
     createDataPlot(dataName,distribution,folds_iter,sigma_range,folds,inputs,labels,result)
   }
 }
+
+```
+
+

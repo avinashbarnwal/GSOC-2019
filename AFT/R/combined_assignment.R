@@ -37,13 +37,14 @@ grad_f_z <- function(z=z,dist='logistic'){
 }
 
 hes_f_z <- function(z=z,dist='logistic'){
-  f_z = f_z(z,dist)
+  f_z      = f_z(z,dist)
+  grad_f_z = grad_f_z(z,dist)
   if(dist=='normal'){
     hes_f_z = (z**2-1)*f_z    
   }
   if(dist=='logistic'){
     w       = exp(z)
-    hes_f_z = f_z*(w**2-4*w+1)/(1+w)**2 
+    hes_f_z = f_z*(w*w-4*w+1)/((1+w)*(1+w))
   }
   if(dist=='extreme'){
     w       = exp(z)
@@ -283,7 +284,7 @@ for(distribution in names(distribution.list)){
 }
 
 data_complete <- do.call(rbind, data_complete_list)
-png("loss_grad_hess_aft.png", width = 800, height = 600)
+#png("loss_grad_hess_aft.png", width = 800, height = 600)
 
 p <- ggplot(data=data_complete) +
   geom_line(aes(x=y.hat,y=parameter,colour=dist_type),
@@ -294,5 +295,5 @@ p <- ggplot(data=data_complete) +
   xlab("predicted survival time y_pred in days (log_2 scale)") + facet_grid(parameter_type ~data_type ,scales="free") + 
   scale_color_discrete(name = "Distribution")
 p
-dev.off()
+#dev.off()
 
