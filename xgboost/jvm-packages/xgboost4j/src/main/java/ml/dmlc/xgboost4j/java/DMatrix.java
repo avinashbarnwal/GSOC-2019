@@ -201,7 +201,17 @@ public class DMatrix {
    * @throws XGBoostError native error
    */
   public void setGroup(int[] group) throws XGBoostError {
-    XGBoostJNI.checkCall(XGBoostJNI.XGDMatrixSetGroup(handle, group));
+    XGBoostJNI.checkCall(XGBoostJNI.XGDMatrixSetUIntInfo(handle, "group", group));
+  }
+
+  /**
+   * Get group sizes of DMatrix
+   *
+   * @throws XGBoostError native error
+   * @return group size as array
+   */
+  public int[] getGroup() throws XGBoostError {
+    return getIntInfo("group_ptr");
   }
 
   private float[] getFloatInfo(String field) throws XGBoostError {

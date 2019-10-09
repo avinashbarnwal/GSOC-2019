@@ -33,7 +33,7 @@ std::string GetModelStr() {
   },
   "configuration": {
     "booster": "gbtree",
-    "n_gpus": "1",
+    "gpu_id": "0",
     "num_class": "0",
     "num_feature": "10",
     "objective": "reg:linear",
@@ -212,6 +212,20 @@ TEST(Json, Null) {
 
   json = Json::Load({null_input.c_str(), null_input.size()});
   ASSERT_TRUE(IsA<Null>(json["key"]));
+}
+
+TEST(Json, EmptyObject) {
+  std::string str = R"json(
+{
+  "rank": 1,
+  "statistic": {
+
+  }
+}
+)json";
+  std::stringstream iss(str);
+  auto json = Json::Load(StringView{str.c_str(), str.size()});
+  ASSERT_TRUE(IsA<Object>(json["statistic"]));
 }
 
 TEST(Json, EmptyArray) {

@@ -142,11 +142,13 @@ DMLC_REGISTER_PARAMETER(GenericParameter);
 class LearnerImpl : public Learner {
  public:
   explicit LearnerImpl(std::vector<std::shared_ptr<DMatrix> >  cache)
-      : configured_{false}, cache_(std::move(cache)) {}
+      : configured_{false}, cache_(std::move(cache)) {
+    monitor_.Init("Learner");
+  }
   // Configuration before data is known.
   void Configure() override {
     if (configured_) { return; }
-    monitor_.Init("Learner");
+
     monitor_.Start("Configure");
     auto old_tparam = tparam_;
     Args args = {cfg_.cbegin(), cfg_.cend()};
@@ -237,14 +239,13 @@ class LearnerImpl : public Learner {
       std::vector<std::pair<std::string, std::string> > attr;
       fi->Read(&attr);
       for (auto& kv : attr) {
-        // Load `predictor`, `n_gpus`, `gpu_id` parameters from extra attributes
+        // Load `predictor`, `gpu_id` parameters from extra attributes
         const std::string prefix = "SAVED_PARAM_";
         if (kv.first.find(prefix) == 0) {
           const std::string saved_param = kv.first.substr(prefix.length());
           bool is_gpu_predictor = saved_param == "predictor" && kv.second == "gpu_predictor";
 #ifdef XGBOOST_USE_CUDA
-          if (saved_param == "predictor" || saved_param == "n_gpus"
-              || saved_param == "gpu_id") {
+          if (saved_param == "predictor" || saved_param == "gpu_id") {
             cfg_[saved_param] = kv.second;
             LOG(INFO)
               << "Parameter '" << saved_param << "' has been recovered from "
@@ -266,10 +267,13 @@ class LearnerImpl : public Learner {
           }
 #endif  // XGBOOST_USE_CUDA
           // NO visible GPU in current environment
-          if (is_gpu_predictor && GPUSet::AllVisible().Size() == 0) {
+          if (is_gpu_predictor && common::AllVisibleGPUs() == 0) {
             cfg_["predictor"] = "cpu_predictor";
             kv.second = "cpu_predictor";
             LOG(INFO) << "Switch gpu_predictor to cpu_predictor.";
+          }
+          if (saved_configs_.find(saved_param) != saved_configs_.end()) {
+            cfg_[saved_param] = kv.second;
           }
         }
       }
@@ -294,13 +298,19 @@ class LearnerImpl : public Learner {
     auto n = tparam_.__DICT__();
     cfg_.insert(n.cbegin(), n.cend());
 
-    gbm_->Configure({cfg_.cbegin(), cfg_.cend()});
+    Args args = {cfg_.cbegin(), cfg_.cend()};
+    generic_param_.InitAllowUnknown(args);
+    gbm_->Configure(args);
     obj_->Configure({cfg_.begin(), cfg_.end()});
 
     for (auto& p_metric : metrics_) {
       p_metric->Configure({cfg_.begin(), cfg_.end()});
     }
 
+    // copy dsplit from config since it will not run again during restore
+    if (tparam_.dsplit == DataSplitMode::kAuto && rabit::IsDistributed()) {
+      tparam_.dsplit = DataSplitMode::kRow;
+    }
     this->configured_ = true;
   }
 
@@ -331,9 +341,15 @@ class LearnerImpl : public Learner {
       }
     }
     {
+      std::vector<std::string> saved_params{"predictor", "gpu_id"};
+      // check if rabit_bootstrap_cache were set to non zero before adding to checkpoint
+      if (cfg_.find("rabit_bootstrap_cache") != cfg_.end() &&
+        (cfg_.find("rabit_bootstrap_cache"))->second != "0") {
+        std::copy(saved_configs_.begin(), saved_configs_.end(),
+                  std::back_inserter(saved_params));
+      }
       // Write `predictor`, `n_gpus`, `gpu_id` parameters as extra attributes
-      for (const auto& key : std::vector<std::string>{
-          "predictor", "n_gpus", "gpu_id"}) {
+      for (const auto& key : saved_params) {
         auto it = cfg_.find(key);
         if (it != cfg_.end()) {
           mparam.contain_extra_attrs = 1;
@@ -530,7 +546,7 @@ class LearnerImpl : public Learner {
   void PredictRaw(DMatrix* data, HostDeviceVector<bst_float>* out_preds,
                   unsigned ntree_limit = 0) const {
     CHECK(gbm_ != nullptr)
-        << "Predict must happen after Load or InitModel";
+        << "Predict must happen after Load or configuration";
     this->ValidateDMatrix(data);
     gbm_->PredictBatch(data, out_preds, ntree_limit);
   }
@@ -581,13 +597,8 @@ class LearnerImpl : public Learner {
     gbm_->Configure(args);
 
     if (this->gbm_->UseGPU()) {
-      if (cfg_.find("n_gpus") == cfg_.cend()) {
-        generic_param_.n_gpus = 1;
-      }
-      if (generic_param_.n_gpus != 1) {
-        LOG(FATAL) << "Single process multi-GPU training is no longer supported. "
-                      "Please switch to distributed GPU training with one process per GPU. "
-                      "This can be done using Dask or Spark.";
+      if (cfg_.find("gpu_id") == cfg_.cend()) {
+        generic_param_.gpu_id = 0;
       }
     }
   }
@@ -606,7 +617,7 @@ class LearnerImpl : public Learner {
       num_feature = std::max(num_feature, static_cast<unsigned>(num_col));
     }
     // run allreduce on num_feature to find the maximum value
-    rabit::Allreduce<rabit::op::Max>(&num_feature, 1);
+    rabit::Allreduce<rabit::op::Max>(&num_feature, 1, nullptr, nullptr, "num_feature");
     if (num_feature > mparam_.num_feature) {
       mparam_.num_feature = num_feature;
     }
@@ -619,11 +630,11 @@ class LearnerImpl : public Learner {
 
   void ValidateDMatrix(DMatrix* p_fmat) const {
     MetaInfo const& info = p_fmat->Info();
-    auto const& weights = info.weights_.HostVector();
-    if (info.group_ptr_.size() != 0 && weights.size() != 0) {
-      CHECK(weights.size() == info.group_ptr_.size() - 1)
+    auto const& weights = info.weights_;
+    if (info.group_ptr_.size() != 0 && weights.Size() != 0) {
+      CHECK(weights.Size() == info.group_ptr_.size() - 1)
           << "\n"
-          << "weights size: " << weights.size()            << ", "
+          << "weights size: " << weights.Size()            << ", "
           << "groups size: "  << info.group_ptr_.size() -1 << ", "
           << "num rows: "     << p_fmat->Info().num_row_   << "\n"
           << "Number of weights should be equal to number of groups in ranking task.";
@@ -653,6 +664,10 @@ class LearnerImpl : public Learner {
   std::vector<std::shared_ptr<DMatrix> > cache_;
 
   common::Monitor monitor_;
+
+  /*! \brief saved config keys used to restore failed worker */
+  std::set<std::string> saved_configs_ = {"max_depth", "tree_method", "dsplit",
+    "seed", "silent", "num_round", "gamma", "min_child_weight"};
 };
 
 std::string const LearnerImpl::kEvalMetric {"eval_metric"};  // NOLINT

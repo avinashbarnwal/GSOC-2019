@@ -210,7 +210,7 @@ createDataPlot <- function(dataName,distribution,folds_iter,sigma_range,folds,in
 ```{r}
 dataNameRange = c('ATAC_JV_adipose','CTCF_TDH_ENCODE','H3K27ac-H3K4me3_TDHAM_BP','H3K27ac_TDH_some','H3K36me3_AM_immune')
 # Set Parameters
-sigma_range         = c(1,2,5,10,100)
+sigma_range         = c(2,5,10,20,50,100)
 distribution_range  = c('normal','logistic','extreme')
 learning_rate       = 0.1
 num_round           = 200

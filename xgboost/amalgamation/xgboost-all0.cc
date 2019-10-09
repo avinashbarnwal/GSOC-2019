@@ -14,6 +14,7 @@
 #include "../src/metric/elementwise_metric.cc"
 #include "../src/metric/multiclass_metric.cc"
 #include "../src/metric/rank_metric.cc"
+#include "../src/metric/survival_metric.cc"
 
 // objectives
 #include "../src/objective/objective.cc"
@@ -30,6 +31,7 @@
 
 // data
 #include "../src/data/data.cc"
+#include "../src/data/ellpack_page.cc"
 #include "../src/data/simple_csr_source.cc"
 #include "../src/data/simple_dmatrix.cc"
 #include "../src/data/sparse_page_raw_format.cc"
@@ -64,10 +66,12 @@
 #include "../src/learner.cc"
 #include "../src/logging.cc"
 #include "../src/common/common.cc"
+#include "../src/common/timer.cc"
 #include "../src/common/host_device_vector.cc"
 #include "../src/common/hist_util.cc"
 #include "../src/common/json.cc"
 #include "../src/common/io.cc"
+#include "../src/common/survival_util.cc"
 
 // c_api
 #include "../src/c_api/c_api.cc"

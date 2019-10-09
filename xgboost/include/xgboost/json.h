@@ -4,8 +4,6 @@
 #ifndef XGBOOST_JSON_H_
 #define XGBOOST_JSON_H_
 
-#include <dmlc/io.h>
-
 #include <xgboost/logging.h>
 #include <string>
 
@@ -164,6 +162,10 @@ class JsonNumber : public Value {
   JsonNumber(FloatT value) : Value(ValueKind::Number) {  // NOLINT
     number_ = value;
   }
+  template <typename FloatT,
+            typename std::enable_if<std::is_same<FloatT, double>::value>::type* = nullptr>
+  JsonNumber(FloatT value) : Value{ValueKind::Number},  // NOLINT
+                             number_{static_cast<Float>(value)} {}
 
   void Save(JsonWriter* writer) override;
 
@@ -195,6 +197,10 @@ class JsonInteger : public Value {
   template <typename IntT,
             typename std::enable_if<std::is_same<IntT, Int>::value>::type* = nullptr>
   JsonInteger(IntT value) : Value(ValueKind::Integer), integer_{value} {} // NOLINT
+  template <typename IntT,
+            typename std::enable_if<std::is_same<IntT, size_t>::value>::type* = nullptr>
+  JsonInteger(IntT value) : Value(ValueKind::Integer),  // NOLINT
+                            integer_{static_cast<Int>(value)} {}
 
   Json& operator[](std::string const & key) override;
   Json& operator[](int ind) override;

@@ -1,11 +1,12 @@
 /*!
- * Copyright 2015 by Contributors
+ * Copyright 2015-2019 by Contributors
  * \file data.cc
  */
 #include <xgboost/data.h>
 #include <xgboost/logging.h>
 #include <dmlc/registry.h>
 #include <cstring>
+
 #include "./sparse_page_writer.h"
 #include "./simple_dmatrix.h"
 #include "./simple_csr_source.h"
@@ -119,7 +120,6 @@ inline bool MetaTryLoadFloatInfo(const std::string& fname,
     default: LOG(FATAL) << "Unknown data type" << dtype;                \
   }                                                                     \
 
-
 void MetaInfo::SetInfo(const char* key, const void* dptr, DataType dtype, size_t num) {
   if (!std::strcmp(key, "root_index")) {
     root_index_.resize(num);
@@ -159,9 +159,15 @@ void MetaInfo::SetInfo(const char* key, const void* dptr, DataType dtype, size_t
       group_ptr_[i] = group_ptr_[i - 1] + group_ptr_[i];
     }
   } else {
-    LOG(FATAL) << "SetInfo(): key " << key << " not recognized";
+    LOG(FATAL) << "Unknown metainfo: " << key;
   }
 }
+
+#if !defined(XGBOOST_USE_CUDA)
+void MetaInfo::SetInfo(const char * c_key, std::string const& interface_str) {
+  LOG(FATAL) << "XGBoost version is not compiled with GPU support";
+}
+#endif  // !defined(XGBOOST_USE_CUDA)
 
 DMatrix* DMatrix::Load(const std::string& uri,
                        bool silent,
@@ -242,7 +248,8 @@ DMatrix* DMatrix::Load(const std::string& uri,
   /* sync up number of features after matrix loaded.
    * partitioned data will fail the train/val validation check
    * since partitioned data not knowing the real number of features. */
-  rabit::Allreduce<rabit::op::Max>(&dmat->Info().num_col_, 1);
+  rabit::Allreduce<rabit::op::Max>(&dmat->Info().num_col_, 1, nullptr,
+    nullptr, fname.c_str());
   // backward compatiblity code.
   if (!load_row_split) {
     MetaInfo& info = dmat->Info();

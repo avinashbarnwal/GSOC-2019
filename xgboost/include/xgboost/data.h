@@ -10,22 +10,24 @@
 #include <dmlc/base.h>
 #include <dmlc/data.h>
 #include <rabit/rabit.h>
-#include <cstring>
+#include <xgboost/base.h>
+
 #include <memory>
 #include <numeric>
 #include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
-#include "./base.h"
+
 #include "../../src/common/span.h"
 #include "../../src/common/group_data.h"
-
 #include "../../src/common/host_device_vector.h"
 
 namespace xgboost {
 // forward declare learner.
 class LearnerImpl;
+// forward declare dmatrix.
+class DMatrix;
 
 /*! \brief data type accepted by xgboost interface */
 enum DataType {
@@ -94,7 +96,7 @@ class MetaInfo {
    * \return The pre-defined root index of i-th instance.
    */
   inline unsigned GetRoot(size_t i) const {
-    return root_index_.size() != 0 ? root_index_[i] : 0U;
+    return !root_index_.empty() ? root_index_[i] : 0U;
   }
   /*! \brief get sorted indexes (argsort) of labels by absolute value (used by cox loss) */
   inline const std::vector<size_t>& LabelAbsSort() const {
@@ -129,6 +131,12 @@ class MetaInfo {
    * \param num Number of elements in the source array.
    */
   void SetInfo(const char* key, const void* dptr, DataType dtype, size_t num);
+  /*!
+   * \brief Set information in the meta info with array interface.
+   * \param key The key of the information.
+   * \param interface_str String representation of json format array interface.
+   */
+  void SetInfo(const char* key, std::string const& interface_str);
 
  private:
   /*! \brief argsort of labels */
@@ -168,7 +176,7 @@ class SparsePage {
   /*! \brief the data of the segments */
   HostDeviceVector<Entry> data;
 
-  size_t base_rowid;
+  size_t base_rowid{};
 
   /*! \brief an instance of sparse vector in the batch */
   using Inst = common::Span<Entry const>;
@@ -217,23 +225,23 @@ class SparsePage {
     const int nthread = omp_get_max_threads();
     builder.InitBudget(num_columns, nthread);
     long batch_size = static_cast<long>(this->Size());  // NOLINT(*)
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for default(none) shared(batch_size, builder) schedule(static)
     for (long i = 0; i < batch_size; ++i) {  // NOLINT(*)
       int tid = omp_get_thread_num();
       auto inst = (*this)[i];
-      for (bst_uint j = 0; j < inst.size(); ++j) {
-        builder.AddBudget(inst[j].index, tid);
+      for (const auto& entry : inst) {
+        builder.AddBudget(entry.index, tid);
       }
     }
     builder.InitStorage();
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for default(none) shared(batch_size, builder) schedule(static)
     for (long i = 0; i < batch_size; ++i) {  // NOLINT(*)
       int tid = omp_get_thread_num();
       auto inst = (*this)[i];
-      for (bst_uint j = 0; j < inst.size(); ++j) {
+      for (const auto& entry : inst) {
         builder.Push(
-            inst[j].index,
-            Entry(static_cast<bst_uint>(this->base_rowid + i), inst[j].fvalue),
+            entry.index,
+            Entry(static_cast<bst_uint>(this->base_rowid + i), entry.fvalue),
             tid);
       }
     }
@@ -242,7 +250,7 @@ class SparsePage {
 
   void SortRows() {
     auto ncol = static_cast<bst_omp_uint>(this->Size());
-#pragma omp parallel for schedule(dynamic, 1)
+#pragma omp parallel for default(none) shared(ncol) schedule(dynamic, 1)
     for (bst_omp_uint i = 0; i < ncol; ++i) {
       if (this->offset.HostVector()[i] < this->offset.HostVector()[i + 1]) {
         std::sort(
@@ -289,10 +297,29 @@ class SortedCSCPage : public SparsePage {
   explicit SortedCSCPage(SparsePage page) : SparsePage(std::move(page)) {}
 };
 
+class EllpackPageImpl;
+/*!
+ * \brief A page stored in ELLPACK format.
+ *
+ * This class uses the PImpl idiom (https://en.cppreference.com/w/cpp/language/pimpl) to avoid
+ * including CUDA-specific implementation details in the header.
+ */
+class EllpackPage {
+ public:
+  explicit EllpackPage(DMatrix* dmat);
+  ~EllpackPage();
+
+  const EllpackPageImpl* Impl() const { return impl_.get(); }
+  EllpackPageImpl* Impl() { return impl_.get(); }
+
+ private:
+  std::unique_ptr<EllpackPageImpl> impl_;
+};
+
 template<typename T>
 class BatchIteratorImpl {
  public:
-  virtual ~BatchIteratorImpl() {}
+  virtual ~BatchIteratorImpl() = default;
   virtual T& operator*() = 0;
   virtual const T& operator*() const = 0;
   virtual void operator++() = 0;
@@ -414,7 +441,7 @@ class DMatrix {
                        bool silent,
                        bool load_row_split,
                        const std::string& file_format = "auto",
-                       const size_t page_size = kPageSize);
+                       size_t page_size = kPageSize);
 
   /*!
    * \brief create a new DMatrix, by wrapping a row_iterator, and meta info.
@@ -440,7 +467,7 @@ class DMatrix {
    */
   static DMatrix* Create(dmlc::Parser<uint32_t>* parser,
                          const std::string& cache_prefix = "",
-                         const size_t page_size = kPageSize);
+                         size_t page_size = kPageSize);
 
   /*! \brief page size 32 MB */
   static const size_t kPageSize = 32UL << 20UL;
@@ -449,6 +476,7 @@ class DMatrix {
   virtual BatchSet<SparsePage> GetRowBatches() = 0;
   virtual BatchSet<CSCPage> GetColumnBatches() = 0;
   virtual BatchSet<SortedCSCPage> GetSortedColumnBatches() = 0;
+  virtual BatchSet<EllpackPage> GetEllpackBatches() = 0;
 };
 
 template<>
@@ -464,6 +492,11 @@ inline BatchSet<CSCPage> DMatrix::GetBatches() {
 template<>
 inline BatchSet<SortedCSCPage> DMatrix::GetBatches() {
   return GetSortedColumnBatches();
+}
+
+template<>
+inline BatchSet<EllpackPage> DMatrix::GetBatches() {
+  return GetEllpackBatches();
 }
 }  // namespace xgboost
 
