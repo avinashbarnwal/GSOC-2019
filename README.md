@@ -29,4 +29,6 @@ Following is the sequence of files:-
 - Using shared library and python library ctypes.  
 
 # LightGBM vs Xgboost
-- It introduces two techniques to improve performance. Gradient-based One-Side Sampling which inspects the most informative samples while skipping the less informative samples. And Exclusive Feature Bundling which takes advantage of sparse datasets by grouping features in a near lossless way.
+- It introduces two techniques to improve performance. 
+- Gradient-based One-Side Sampling which inspects the most informative samples while skipping the less informative samples.
+- Exclusive Feature Bundling which takes advantage of sparse datasets by grouping features in a near lossless way.
