@@ -389,10 +389,10 @@ library(ggplot2)</code></pre>
 <h5>Functions to Import Dataset</h5>
 <pre class="r"><code>data_import &lt;-function(dataname){
   
-  filename = paste('https://raw.githubusercontent.com/avinashbarnwal/GSOC-2019/master/AFT/test/data/neuroblastoma-data-master/data/',dataname,'/',sep=&quot;&quot;)
-  inputFileName = paste(filename,'inputs.csv',sep=&quot;&quot;)
-  labelFileName = paste(filename,'outputs.csv',sep=&quot;&quot;)
-  foldsFileName = paste(filename,'cv/equal_labels/folds.csv',sep=&quot;&quot;)
+  filename = paste(&#39;https://raw.githubusercontent.com/avinashbarnwal/GSOC-2019/master/AFT/test/data/neuroblastoma-data-master/data/&#39;,dataname,&#39;/&#39;,sep=&quot;&quot;)
+  inputFileName = paste(filename,&#39;inputs.csv&#39;,sep=&quot;&quot;)
+  labelFileName = paste(filename,&#39;outputs.csv&#39;,sep=&quot;&quot;)
+  foldsFileName = paste(filename,&#39;cv/equal_labels/folds.csv&#39;,sep=&quot;&quot;)
   inputs = read.table(inputFileName,sep=&quot;,&quot;,header=T,stringsAsFactors = F)
   labels = read.table(labelFileName,sep=&quot;,&quot;,header=T,stringsAsFactors = F)
   folds  = read.table(foldsFileName,sep=&quot;,&quot;,header=T,stringsAsFactors = F) 
@@ -423,8 +423,8 @@ library(ggplot2)</code></pre>
 <h5>Function for getting train and validation datasets.</h5>
 <pre class="r"><code>getXY&lt;-function(foldNo,folds,inputs,labels){
   
-  test_id      = folds[folds$fold==foldNo,'sequenceID']
-  train_id     = folds[folds$fold!=foldNo,'sequenceID']
+  test_id      = folds[folds$fold==foldNo,&#39;sequenceID&#39;]
+  train_id     = folds[folds$fold!=foldNo,&#39;sequenceID&#39;]
   X            = inputs[inputs$sequenceID %in% train_id,]
   X            = X[,-which(names(X) %in% c(&quot;sequenceID&quot;))]
   X            = as.matrix(X)
@@ -468,12 +468,12 @@ library(ggplot2)</code></pre>
 <pre class="r"><code>trainModel &lt;- function(foldNo,X,X_val,y_lower,y_lower_val,y_upper,y_upper_val,param,num_round){
   
   dtrain = xgb.DMatrix(X)
-  setinfo(dtrain,'label_lower_bound', y_lower)
-  setinfo(dtrain,'label_upper_bound', y_upper)
+  setinfo(dtrain,&#39;label_lower_bound&#39;, y_lower)
+  setinfo(dtrain,&#39;label_upper_bound&#39;, y_upper)
   
   dtest = xgb.DMatrix(X_val)
-  setinfo(dtest,'label_lower_bound', y_lower_val)
-  setinfo(dtest,'label_upper_bound', y_upper_val)
+  setinfo(dtest,&#39;label_lower_bound&#39;, y_lower_val)
+  setinfo(dtest,&#39;label_upper_bound&#39;, y_upper_val)
   
   watchlist &lt;- list(eval = dtest, train = dtrain)
   bst       &lt;- xgb.train(param, dtrain, num_round, watchlist,verbose = 0)
@@ -496,21 +496,21 @@ library(ggplot2)</code></pre>
 <div id="function-for-creating-data" class="section level5">
 <h5>Function for creating data</h5>
 <pre class="r"><code>createData &lt;- function(bst,Fold,distribution,sigma){
-  colnames(bst$evaluation_log) = c('iter','eval','train')
+  colnames(bst$evaluation_log) = c(&#39;iter&#39;,&#39;eval&#39;,&#39;train&#39;)
   df_eval           = data.frame(bst$evaluation_log$iter,bst$evaluation_log$eval)
-  df_eval$paramter  = rep('eval',nrow(df_eval))
+  df_eval$paramter  = rep(&#39;eval&#39;,nrow(df_eval))
   df_eval$sigma     = rep(sigma,nrow(df_eval))
   df_eval$distribution  = rep(distribution,nrow(df_eval))
   df_eval$fold       = rep(Fold,nrow(df_eval))
   
-  colnames(df_eval) = c('iter','error','type','sigma','distribution','fold')
+  colnames(df_eval) = c(&#39;iter&#39;,&#39;error&#39;,&#39;type&#39;,&#39;sigma&#39;,&#39;distribution&#39;,&#39;fold&#39;)
   df_train = data.frame(bst$evaluation_log$iter,bst$evaluation_log$train)
-  df_train$paramter = rep('train',nrow(df_train))
+  df_train$paramter = rep(&#39;train&#39;,nrow(df_train))
   df_train$sigma     = rep(sigma,nrow(df_train))
   df_train$distribution  = rep(distribution,nrow(df_train))
   df_train$fold       = rep(Fold,nrow(df_train))
   
-  colnames(df_train) = c('iter','error','type','sigma','distribution','fold')
+  colnames(df_train) = c(&#39;iter&#39;,&#39;error&#39;,&#39;type&#39;,&#39;sigma&#39;,&#39;distribution&#39;,&#39;fold&#39;)
   df = rbind(df_eval,df_train)
   return(df)
 }</code></pre>
@@ -539,10 +539,10 @@ library(ggplot2)</code></pre>
 </div>
 <div id="setting-parameters-and-result" class="section level5">
 <h5>Setting Parameters and Result</h5>
-<pre class="r"><code>dataNameRange = c('ATAC_JV_adipose','CTCF_TDH_ENCODE','H3K27ac-H3K4me3_TDHAM_BP','H3K27ac_TDH_some','H3K36me3_AM_immune')
+<pre class="r"><code>dataNameRange = c(&#39;ATAC_JV_adipose&#39;,&#39;CTCF_TDH_ENCODE&#39;,&#39;H3K27ac-H3K4me3_TDHAM_BP&#39;,&#39;H3K27ac_TDH_some&#39;,&#39;H3K36me3_AM_immune&#39;)
 # Set Parameters
 sigma_range         = c(2,5,10,20,50,100)
-distribution_range  = c('normal','logistic','extreme')
+distribution_range  = c(&#39;normal&#39;,&#39;logistic&#39;,&#39;extreme&#39;)
 learning_rate       = 0.1
 num_round           = 200
 
